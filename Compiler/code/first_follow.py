@@ -144,4 +144,4 @@ grammars4 = [
     "F -> ( E )",
 ]
 
-parser = FirstFollowParser(grammars4)
+# parser = FirstFollowParser(grammars4)

@@ -35,13 +35,10 @@ class PredictiveAnalyzer(object):
             nullable = self.flparser.tab[sym]["nullable"]
             for i in first_of_sym:
                 first.add(i)
-            print(sym, self.flparser.tab[sym])
             if not nullable:
                 break
             else:
                 is_nullable = True
-        if gram.strip() == "B b S":
-            print("-------- ", first)
         return first, is_nullable
 
     def gen_pa_table(self):
