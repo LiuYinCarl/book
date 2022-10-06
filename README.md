@@ -5,6 +5,10 @@ latex books
 
 使用 XeLaTex 引擎进行编译。
 
+## 开源库使用
+
+ElegantBook v4.4
+
 
 ## 插入书籍中图片 draw.io导出图像标准
 
