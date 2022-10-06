@@ -1,0 +1,112 @@
+\chapter{环境准备}
+
+本书对 Python 3.10.4 版本的代码实现进行探究。使用的 Python 实现为 CPython。
+
+\section{Python 编译}
+
+为了了解 Python 的细节，探究和验证代码的实现是否符合自己的预期，我们需要亲自动手修改源码，添加测试代码。
+为了完成这个目的，需要学会自己动手编译 Python 源码。所以在本节，将介绍如何编译 Python 代码。
+
+\subsection{在 Linux/MacOS 平台上编译 Python}
+
+编译步骤如下：
+
+第一步是下载 Python 代码并切换到 Python 3.10.4 版本。
+
+\begin{lstlisting}[language=bash, numbers=left, numbersep=1em, numberstyle=\footnotesize , breaklines=true]
+# 从 github 克隆代码
+$ git clone https://github.com/python/cpython.git
+# 切换到 v3.10.4
+$ git checkout v3.10.4
+# 查看是否切换成功，如下所示就表示成功切换到了 v3.10.4 的代码
+$ git branch
+* (HEAD detached at v3.10.4)
+  main
+\end{lstlisting}
+
+第二步就是进行代码的编译
+
+\begin{lstlisting}[language=bash, numbers=left, numbersep=1em, numberstyle=\footnotesize , breaklines=true]
+# 进入 cpython 代码目录
+cd cpython
+# 根据当前系统环境，生成带 debug 信息的 Makefile 
+$ ./configure --with-pydebug
+# 编译代码
+$ make -j8
+\end{lstlisting}
+
+在编译完成之后，可以在当前目录看到一个叫做 python.exe 的文件（在 Linux 系统下，编译出来的可执行文件名是 python），
+这个文件就是我们正常使用的 Python 程序了。
+
+接下来，你可以使用这个程序进行一些 Python 代码的测试。
+
+\begin{lstlisting}[language=bash, numbers=left, numbersep=1em, numberstyle=\footnotesize , breaklines=true]
+$ ./python.exe
+Python 3.10.4 (tags/v3.10.4:9d38120e33, May 15 2022, 02:03:06) [Clang 13.0.0 (clang-1300.0.29.30)] on darwin
+Type "help", "copyright", "credits" or "license" for more information.
+>>> print("test print")
+test print
+>>> print(2**3)
+8
+\end{lstlisting}
+
+
+\begin{definition}[编译过程中的警告] \label{def:int}
+在编译的过程中，如果提示 ssh、 \_lzma 等少数几个模块没有 build 成功的话也没有关系，不会影响后面的讲解。只要 python.exe 文件
+成功编译出来即可。也可以通过在终端最后几行的输出中查找是否有 "Python build finished successfully!" 字样来判断是否编译成功。
+\end{definition}
+
+
+\section{文档编译}
+
+在学习 cpython 源代码的过程中，如果能阅读相关模块的设计文档可以起到事半功倍的作用，所幸 cpython 考虑到了这一点，为我们准备好了丰富的
+文档来辅助学习。cpython 的文档都放置在 cpython/Doc 路径下，以 rst 文件的纯文本格式保存。如果不想直接看 rst 文件，可以将文档编译为其他
+的格式。下面就是 cpython 文档支持的转换格式。
+
+\begin{lstlisting}[language=bash, numbers=left, numbersep=1em, numberstyle=\footnotesize , breaklines=true]
+$ make
+Please use `make <target>' where <target> is one of
+  clean      to remove build files
+  venv       to create a venv with necessary tools
+  html       to make standalone HTML files
+  htmlview   to open the index page built by the html target in your browser
+  htmlhelp   to make HTML files and a HTML help project
+  latex      to make LaTeX files, you can set PAPER=a4 or PAPER=letter
+  text       to make plain text files
+  texinfo    to make Texinfo file
+  epub       to make EPUB files
+  changes    to make an overview over all changed/added/deprecated items
+  linkcheck  to check all external links for integrity
+  coverage   to check documentation coverage for library and C API
+  doctest    to run doctests in the documentation
+  pydoc-topics  to regenerate the pydoc topics file
+  dist       to create a "dist" directory with archived docs for download
+  suspicious to check for suspicious markup in output text
+  check      to run a check for frequent markup errors
+  serve      to serve the documentation on the localhost (8000)
+\end{lstlisting}
+
+对通常的开发者来说，编译为 HTML 就足够了，可以在阅读源代码的同时使用浏览器查看对应的文档。编译为 HTML 的方式也很简单，只需要
+在 cpython/Doc 目录下执行 make htmlview 即可，编译出的 HTML 格式文档保存在 cpython/Doc/build/html 目录下，使用浏览器打开这个
+目录下的 index.html 文件即可看到文档内容。
+
+\begin{definition}[rst 文件] \label{def:int}
+rst 是 reStructuredText 的缩写，reStructuredText 是一种易于阅读，所见即所得的纯文本标记语法和解析器系统。reStructuredText 的主要目标
+是定义和实现用于 Python 文档字符串和其他文档域的标记语法，该语法可读且简单，但足够强大，可以轻松使用。通俗来说，reStructuredText
+ 是一种和 markdowm 类似的标记语法，rst 文件是一种和 markdown 文档类似的纯文本文档。
+\end{definition}
+
+\section{dis 工具}
+
+本节介绍下 dis 工具的使用。
+
+\section{静态值工具}
+
+本节介绍开发一个分析静态数据的工具。
+
+\section{参考资料}
+
+\begin{itemize}
+\item \href{https://peps.python.org/pep-0006/}{PEP 6 – Bug Fix Releases}
+\item \href{https://docutils.sourceforge.io/rst.html}{reStructuredText-Markup Syntax and Parser Component of Docutils}
+\end{itemize}

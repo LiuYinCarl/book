@@ -1,0 +1,68 @@
+Rc files read:
+  NONE
+Latexmk: This is Latexmk, John Collins, 17 Mar. 2022. Version 4.77, version: 4.77.
+Latexmk: Changing directory to '/var/lib/sharelatex/data/compiles/6305cd647db38f008be12042-62c0101ddf47630090d141fb/'
+Latexmk: applying rule 'xelatex'...
+Rule 'xelatex': File changes, etc:
+   Changed files, or newly in use since previous run(s):
+  chapter1.aux
+  chapter2.aux
+Rule 'xelatex': The following rules & subrules became out-of-date:
+  xelatex
+------------
+Run number 1 of rule 'xelatex'
+------------
+------------
+Running 'xelatex -no-pdf -synctex=1 -interaction=batchmode -recorder --jobname="output"  "main.tex"'
+------------
+This is XeTeX, Version 3.141592653-2.6-0.999994 (TeX Live 2022) (preloaded format=xelatex)
+ restricted \write18 enabled.
+entering extended mode
+
+SyncTeX written on output.synctex.gz.Latexmk: Getting log file 'output.log'
+Latexmk: Examining 'output.fls'
+Latexmk: Examining 'output.log'
+Latexmk: Found input bbl file 'output.bbl'
+Latexmk: Log file says output to 'output.xdv'
+Biber warning: [175] Biber.pm:130> WARN - The file 'output.bcf' does not contain any citations!
+Latexmk: Found biber source file(s) [output.bcf]
+Latexmk: applying rule 'xelatex'...
+Rule 'xelatex': File changes, etc:
+   Changed files, or newly in use since previous run(s):
+  chapter1.aux
+  chapter2.aux
+Rule 'xelatex': The following rules & subrules became out-of-date:
+  xelatex
+------------
+Run number 2 of rule 'xelatex'
+------------
+------------
+Running 'xelatex -no-pdf -synctex=1 -interaction=batchmode -recorder --jobname="output"  "main.tex"'
+------------
+This is XeTeX, Version 3.141592653-2.6-0.999994 (TeX Live 2022) (preloaded format=xelatex)
+ restricted \write18 enabled.
+entering extended mode
+
+SyncTeX written on output.synctex.gz.Latexmk: Getting log file 'output.log'
+Latexmk: Examining 'output.fls'
+Latexmk: Examining 'output.log'
+Latexmk: Found input bbl file 'output.bbl'
+Latexmk: Log file says output to 'output.xdv'
+Biber warning: [175] Biber.pm:130> WARN - The file 'output.bcf' does not contain any citations!
+Latexmk: Found biber source file(s) [output.bcf]
+Latexmk: applying rule 'xdvipdfmx'...
+Rule 'xdvipdfmx': File changes, etc:
+   Changed files, or newly in use since previous run(s):
+  output.xdv
+   Rule(s) that have been run and require run of dependent rule:
+      'xelatex' which requires run of 'xdvipdfmx'
+Rule 'xdvipdfmx': The following rules & subrules became out-of-date:
+  xdvipdfmx
+------------
+Run number 1 of rule 'xdvipdfmx'
+------------
+------------
+Running 'xdvipdfmx -E -o "output.pdf"  "output.xdv"'
+------------
+Latexmk: All targets (output.xdv output.pdf) are up-to-date
+Latexmk: Undoing directory change

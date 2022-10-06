@@ -1,0 +1,280 @@
+\chapter{文本操作程序}
+
+本章节介绍常用的 Linux 文本操作程序。
+
+\section{cut}
+
+cut 是一个文本处理程序, 用来取出每个文件中的每一行的某个部分。
+
+版本：cut (GNU coreutils) 8.30
+
+\subsection{用法和参数}
+
+\begin{lstlisting}[language=bash, numbersep=1em, numberstyle=\footnotesize , breaklines=true]
+cut OPTION [FILE]
+          OPTION 参数是必选的，FILE 参数是可选的
+
+   -b, --bytes=LIST
+          选择特定的字节序列
+
+   -c, --characters=LIST
+          选择特定的字符序列
+
+   -d, --delimiter=DELIM
+          使用 DELIM 而不是 TAB 作为字段分隔符，默认使用 TAB 作为字段分隔符
+
+   -f, --fields=LIST
+          选择特定的字段序列; 除非指定了 -s 参数，否则会打印所有
+          不包含分隔符的行
+
+   -n     (ignored)
+
+   --complement
+          补充所选的字节、字符或字段集
+
+   -s, --only-delimited
+          不打印不包含分隔符的行
+
+   --output-delimiter=STRING
+          使用 STRING 作为输出的字段分隔符，默认使用和输入相同的字段分隔符
+
+   -z, --zero-terminated
+          使用 NUL 而不是换行符作为行分隔符，不能单独使用
+\end{lstlisting}
+
+\subsection{使用示例}
+
+使用的测试文件 test.txt 内容如下。
+\begin{lstlisting}[language=bash, numbersep=1em, numberstyle=\footnotesize , breaklines=true]
+abc cde
+bdf fgh
+abc hhh
+\end{lstlisting}
+
+
+\begin{lstlisting}[language=bash, numbersep=1em, numberstyle=\footnotesize , breaklines=true]
+# 输出每行的第 1 个字节
+$ cut -b 1 test.txt
+a
+b
+a
+
+# 输出每行的第1到3字节
+$ cut -b 1-3 test.txt
+abc
+bdf
+abc
+
+# 输出每行的第5个字节及之后的内容
+$ cut -b 5- test.txt
+cde
+fgh
+hhh
+
+# 输出每行的第1到3个字符, -b与-c参数的用法类似
+$ cut -c 1-3 test.txt
+abc
+bdf
+abc
+
+# 以空格为分隔符将每一行切割为多列，输出第二列
+$ cut -d " " -f 2 test.txt
+cde
+fgh
+hhh
+
+# 任务: 假设服务器所有日志存在一个文件
+# 假设
+$ find . -name "*.log" | xargs file | grep "text" | cut -d: -f1 | xargs cat | grep "on_bpass_season_end"
+
+\end{lstlisting}
+
+\subsection{练习}
+假设服务器所有日志存储在一个目录/server\_log/下，文件名格式为module\_name.log，日志文件大小达到10M之后
+会将旧日志重命名为module\_name.log.1, module\_name.log.2等，当旧日志数量达到10个之后，会将旧日志进行
+压缩，压缩文件命名为module\_name.log.tar.gz，现在要求查找http模块中所有包含"UserName"的日志，压缩日志除外。
+
+\begin{lstlisting}[language=bash, numbersep=1em, numberstyle=\footnotesize , breaklines=true]
+find . -name "http.log*" | xargs file | grep "text" | cut -d: -f1 | xargs cat | grep "UserName"
+\end{lstlisting}
+
+\subsection{文档}
+\begin{itemize}
+\item \href{https://man7.org/linux/man-pages/man1/cut.1.html}{在线手册}
+\end{itemize}
+
+\newpage
+\section{rev}
+
+rev 程序的功能是按字符反转文本行。rev 将指定的文件复制到标准输出并且颠倒每一行中字符的顺序。如果没有
+指定文件，则读取标准输入。rev 使用内为宽字符行分配的内存缓冲区，如果输入文件非常大并且没有换行符的话，
+rev 程序可能运行失败。
+
+\subsection{用法和参数}
+
+\begin{lstlisting}[language=bash, numbersep=1em, numberstyle=\footnotesize , breaklines=true]
+uniq [OPTION]... [INPUT [OUTPUT]]
+rev [option] [file...]
+\end{lstlisting}
+
+\subsection{使用示例}
+
+用来测试的文件 test.txt 内容
+\begin{lstlisting}[language=bash, numbersep=1em, numberstyle=\footnotesize , breaklines=true]
+abc def
+这是一行测试 rev 的文本
+\end{lstlisting}
+
+\begin{lstlisting}[language=bash, numbersep=1em, numberstyle=\footnotesize , breaklines=true]
+$ rev test.txt
+fed cba
+本文的 ver 试测行一是这
+\end{lstlisting}
+
+
+\subsection{文档}
+\begin{itemize}
+\item \href{https://www.man7.org/linux/man-pages/man1/rev.1.html}{在线手册}
+\end{itemize}
+
+\newpage
+\section{uniq}
+
+uniq 从输入文件或者标准输入中过滤\textbf{相邻}的匹配行，写入输入文件或者标准输入，
+如果没有添加任何参数的话，匹配的行都会合并到首次出现的行中。uniq 在日常中主要用来做文本重复行的过滤、统计、去重三个操作。
+
+
+\subsection{用法和参数}
+
+\begin{lstlisting}[language=bash, numbersep=1em, numberstyle=\footnotesize , breaklines=true]
+uniq [OPTION]... [INPUT [OUTPUT]]
+
+   -c, --count
+          统计每一行出现的次数，出现次数并作为前缀添加到首次出现的行前
+
+   -d, --repeated
+          输出所有重复的行，每组重复的行只输出一次
+
+   -D     输出所有重复的行
+
+   --all-repeated[=METHOD]
+          和 —D 类似，但是允许使用空行来分隔不同的重复组
+          METHOD={none(default),prepend,separate}
+
+   -f, --skip-fields=N
+          不比较每行的前 N 个字段
+
+   --group[=METHOD]
+          展示所有项，并且使用空行进行分割
+          METHOD={separate(default),prepend,append,both}
+
+   -i, --ignore-case
+          在比较的时候忽略大小写
+
+   -s, --skip-chars=N
+          跳过比较每行的前 N 个字符
+
+   -u, --unique
+          只打印出现过一次的行
+
+   -z, --zero-terminated
+          使用 NUL 而不是换行符作为行分割符
+
+   -w, --check-chars=N
+          只比较每行的最多前 N 个字符
+\end{lstlisting}
+
+\subsection{使用示例}
+下面测试中使用的文件。
+
+uniq.txt
+\begin{lstlisting}[language=bash, numbersep=1em, numberstyle=\footnotesize , breaklines=true]
+aaaa
+bbbb
+cccc
+aaaa
+bbbb
+aaaa
+\end{lstlisting}
+
+uniq2.txt
+\begin{lstlisting}[language=bash, numbersep=1em, numberstyle=\footnotesize , breaklines=true]
+1 aaaa
+2 bbbb
+3 cccc
+4 aaaa
+5 bbbb
+6 aaaa
+\end{lstlisting}
+
+uniq3.txt
+\begin{lstlisting}[language=bash, numbersep=1em, numberstyle=\footnotesize , breaklines=true]
+aaa12
+aaa23
+bbb34
+\end{lstlisting}
+
+uniq 各参数使用实例。
+\begin{lstlisting}[language=bash, numbersep=1em, numberstyle=\footnotesize , breaklines=true]
+$ cat uniq.txt | sort | uniq
+aaaa
+bbbb
+cccc
+
+$ cat uniq.txt | sort | uniq -c
+      3 aaaa
+      2 bbbb
+      1 cccc
+      
+$ cat uniq.txt | sort | uniq -d
+aaaa
+bbbb
+
+$ cat uniq.txt | sort | uniq -D
+aaaa
+aaaa
+aaaa
+bbbb
+bbbb
+
+$ cat uniq.txt | sort | uniq --all-repeated=separate
+aaaa
+aaaa
+aaaa
+
+bbbb
+bbbb
+
+$ cat uniq2.txt | rev | sort | rev | uniq --skip-fields=1 -D
+1 aaaa
+4 aaaa
+6 aaaa
+2 bbbb
+5 bbbb
+
+$ cat uniq.txt | sort | uniq --group=append
+aaaa
+aaaa
+aaaa
+
+bbbb
+bbbb
+
+cccc
+
+$ cat uniq2.txt | rev | sort | rev | uniq -s 2 -D
+1 aaaa
+4 aaaa
+6 aaaa
+2 bbbb
+5 bbbb
+
+$ cat uniq.txt | sort | uniq -u
+cccc
+
+$ cat uniq3.txt | uniq -w 3 -c
+      2 aaa12
+      1 bbb34
+\end{lstlisting}
+
+\subsection{文档}

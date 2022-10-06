@@ -1,0 +1,502 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%  字符串对象
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\chapter{Python 字符串对象}
+
+在 Python 3.3 之后，cpython 中 Unicode 字符串的内部表示发生了变化，Unicode 字符串有多个内部表示形式，具体
+使用哪一种取决于字符串中最大的 Unicode 字符。具体规则如下：
+\begin{itemize}
+\item 如果字符串中所有的 Unicode 字符都可以使用一个字节表示，那么使用 Py\_UCS1，也即是 latin1 格式的内部表示。
+\item 如果字符串中所有的 Unicode 字符都可以使用两个字节表示，那么使用 Py\_UCS2 格式的内部表示。
+\item 如果字符串中所有的 Unicode 字符都可以使用四个字节表示，那么使用 Py\_UCS4 格式的内部表示。
+\end{itemize}
+
+在具体进行说明之前，先说明一下 Unicode，UCS 和字符之间的关系。Unicode 是为了给世界上各种字符一个唯一的表示而
+设计的一种标准，任何字符在 Unicode 中都对应一个值，这个值被称为 code point。反过来说就是 code point 是指定 Unicode
+系统中某个字符的一个数字。在 Unicode 系统中，code point 使用 "U+1234" 这样的形式进行表示，其中 1234 就代表这个 code
+point 被分配的数字，例如，字符 "a" 被分配的 code point 是 "U+0041"。有了 code point，还需要具体的编码规则，将 code point
+储存到计算机中，这个储存规则就是字符编码规则。UCSUCS-2 和 UCS-4 就是两种字符编码规则，分别使用 2 个字节和四个字节来编码
+一个 Unicode 字符，很明显，如果 2 个字节就可以包括所有的 Unicode 字符，那么就完全不需要耗费双倍存储空间的 UCS-4 了，所以
+UCS-2 表示的是完整的 Unicode 字符集的一个子集，使用 UCS-2 不能表示任意一个 Unicode 字符。常见的 UTF-16 就是一个 UCS-2 的
+一个具体实现，UTF-32 就是一个 UCS-4 的具体实现。
+
+回到 Python 中来，上面提到的 Python 会根据 Unicode 字符串中最大的 Unicode 字符来选择一个内部编码就很好理解了，
+如果字符串是一个简单的 ASCII 字符串，那么使用每个字符一个字节的 latin1 编码最省存储空间，如果字符串中最大的字符可以使用
+UCS-2 表示，那么使用每个字符占 2 个字节的 UCS-2 编码最省空间，如果字符串中最大的字符超过 UCS-2 能表示的范围，那么就使用
+UCS-4 来编码字符串。
+
+但是我们这个时候会有一个疑问，如果一个很长的字符串中除了一个需要用 UCS-4 表示的字符，其他全部都是 ASCII 字符串，那不是因为
+这一个字符导致存储字符串需要的空间变大了接近 3 倍吗？使用一个变长字符的编码，对 ASCII 字符使用一个字节存储，对在 UCS-2 范围
+内的字符使用 2 字节进行存储，对在 UCS-4 范围内的字符使用 3 或 4 字节进行存储，不是才最省空间吗。
+是的，使用变长编码（例如 UTF-8）的字符串确实会比使用 UCS-2 和 UCS-4 省很多空间，在极端情况下甚至可以省 3/4，但是，使用变长
+编码来存储字符串也是有代价的。可以考虑这个问题，如果一个字符串中，每个字符都使用 2 个字节进行表示，那么要快速访问第 N 个
+字符，有一种非常简单的方式，就是 字符串首字符地址 + 2 * (N-1)。但是如果使用变长编码来存储字符串的话，要访问第 N 个字符，就
+需要对字符串的每个字节进行遍历，依次解析出每个字符，这样子才可以确定第 N 个字符的位置。所以，Python 不采用变长编码是一种
+空间换时间的做法。
+
+Python 内部将字符串分成了 4 种。
+
+第一种是紧凑的 ASCII 字符串，这种字符串使用 PyASCIIObject 来进行表示。它的类型为 PyUnicode\_1BYTE\_KIND。
+
+第二种是紧凑的字符串，它使用 PyCompactUnicodeObject 表示。类型为 PyUnicode\_1BYTE\_KIND，PyUnicode\_2BYTE\_KIND
+或者 PyUnicode\_4BYTE\_KIND。PyUnicode\_1BYTE\_KIND 这种类型的字符串是每个字符能用一个字节表示的字符串，也就是 latin1
+字符串，ASCII 是 latin1 的子集，所以纯 ASCII 字符串使用第一种字符串来保存，纯 latin1 字符串就使用第二种字符串来保存。
+
+第三种是旧版本，且 ready 状态为 0 的字符串，这种字符串使用 PyUnicodeObject 来表示。它的类型为 PyUnicode\_WCHAR\_KIND。
+
+第四种是旧版本，且 ready 状态为 1 的字符串，使用 PyUnicodeObject 表示，类型为 PyUnicode\_1BYTE\_KIND，PyUnicode\_2BYTE\_KIND
+或者 PyUnicode\_4BYTE\_KIND。
+
+紧凑的字符串使用一块完整的内存来保存字符串需要的结构体和字符串内容。旧版本字符串则使用两块内存来保存，其中一块用来保存
+字符串结构体，一块用来保存字符串内容，并且结构体中有一个指针指向第二个内存块。
+
+旧版本的字符串使用 PyUnicode\_FromUnicode() 和 PyUnicode\_FromStringAndSize(NULL, size) 函数进行创建，并且在 PyUnicode\_READY()
+函数被调用之后 ready 状态才由 0 变为 1。
+
+
+下面看一个 Python3 中具体是如何实现字符串功能的。
+
+\begin{lstlisting}[language=C, numbers=left, numbersep=1em, numberstyle=\footnotesize , breaklines=true]
+typedef struct {
+    PyObject_HEAD
+    Py_ssize_t length;  // 字符串中代码点的数量，可以理解为符号数量
+    Py_hash_t hash;
+    struct {
+        unsigned int interned:2; // 字符串是否被共享
+        unsigned int kind:3;  // 字符串采用的编码方式
+        unsigned int compact:1;  // 对象是否和文本内容一起分配
+        unsigned int ascii:1;  // 字符串是否都是 ASCII 字符
+        unsigned int ready:1; // 字符串对象是否初始化完成
+        unsigned int :24;  // 用来做内存对齐
+    } state;
+    wchar_t *wstr;  // 指向宽字符数组的指针，数组以 "\0" 结尾
+} PyASCIIObject;
+
+typedef struct {
+    PyASCIIObject _base;
+    Py_ssize_t utf8_length;  // utf8 字符串中的字节数，不包括结尾的空字符
+    char *utf8;                 // 指向 utf8字符数组的指针，字符数组以 \0 结尾
+    Py_ssize_t wstr_length;    // wstr 中代码点的数量
+                                 * surrogates count as two code points. */
+} PyCompactUnicodeObject;
+
+typedef struct {
+    PyCompactUnicodeObject _base;
+    union {
+        void *any;
+        Py_UCS1 *latin1;
+        Py_UCS2 *ucs2;
+        Py_UCS4 *ucs4;
+    } data;                     /* Canonical, smallest-form Unicode buffer */
+} PyUnicodeObject;
+\end{lstlisting}
+
+分析完了字符串的存储结构，接下来看一下 Python 中的字符串是如何创建的。
+
+首先看一下旧版本字符串的创建函数 PyUnicode\_FromUnicode 和 PyUnicode\_FromStringAndSize。
+
+\begin{lstlisting}[language=C, numbers=left, numbersep=1em, numberstyle=\footnotesize , breaklines=true]
+PyObject *
+PyUnicode_FromUnicode(const Py_UNICODE *u, Py_ssize_t size)
+{
+    // 如果字符串为空
+    if (u == NULL) {
+        if (size > 0) {
+            if (PyErr_WarnEx(PyExc_DeprecationWarning,
+                    "PyUnicode_FromUnicode(NULL, size) is deprecated; "
+                    "use PyUnicode_New() instead", 1) < 0) {
+                return NULL;
+            }
+        }
+        // i == NULL 并且 size >= 0，返回调用 _PyUnicode_New 创建的字符串
+        return (PyObject*)_PyUnicode_New(size);
+    }
+	// size < 0 抛出错误
+    if (size < 0) {
+        PyErr_BadInternalCall();
+        return NULL;
+    }
+	// u != NULL 并且 size >= 0，返回 PyUnicode_FromWideChar 创建的字符串
+    return PyUnicode_FromWideChar(u, size);
+}
+\end{lstlisting}
+
+PyUnicode\_FromUnicode 其实内部也没有逻辑，最后还是调用 \_PyUnicode\_New 和 PyUnicode\_FromWideChar 来创建
+PyUnicodeObject 对象。
+
+\begin{lstlisting}[language=C, numbers=left, numbersep=1em, numberstyle=\footnotesize , breaklines=true]
+static PyUnicodeObject *
+_PyUnicode_New(Py_ssize_t length)
+{
+    PyUnicodeObject *unicode;
+    size_t new_size;
+
+    // [1] 如何 length 为 0，那么直接返回一个共享的空字符串
+    if (length == 0) {
+        return (PyUnicodeObject *)unicode_new_empty();
+    }
+
+    // 检查需要申请的字符串长度，如果太长，直接抛出错误
+    if (length > ((PY_SSIZE_T_MAX / (Py_ssize_t)sizeof(Py_UNICODE)) - 1)) {
+        return (PyUnicodeObject *)PyErr_NoMemory();
+    }
+    // length < 0 也是不合法的
+    if (length < 0) {
+        PyErr_SetString(PyExc_SystemError,
+                        "Negative size passed to _PyUnicode_New");
+        return NULL;
+    }
+    // 创建一个 PyUnicodeObject 结构
+    unicode = PyObject_New(PyUnicodeObject, &PyUnicode_Type);
+    if (unicode == NULL)
+        return NULL;
+    new_size = sizeof(Py_UNICODE) * ((size_t)length + 1);
+
+    // PyUnicodeObject 一些数据结构的初始化
+    _PyUnicode_WSTR_LENGTH(unicode) = length;
+    _PyUnicode_HASH(unicode) = -1;
+    _PyUnicode_STATE(unicode).interned = 0;
+    _PyUnicode_STATE(unicode).kind = 0;
+    _PyUnicode_STATE(unicode).compact = 0;
+    // 注意，ready 是被初始化为 0 的
+    _PyUnicode_STATE(unicode).ready = 0;
+    _PyUnicode_STATE(unicode).ascii = 0;
+    _PyUnicode_DATA_ANY(unicode) = NULL;
+    _PyUnicode_LENGTH(unicode) = 0;
+    _PyUnicode_UTF8(unicode) = NULL;
+    _PyUnicode_UTF8_LENGTH(unicode) = 0;
+    // 申请分配存储字符串需要的存储空间
+    _PyUnicode_WSTR(unicode) = (Py_UNICODE*) PyObject_Malloc(new_size);
+    if (!_PyUnicode_WSTR(unicode)) {
+        Py_DECREF(unicode);
+        PyErr_NoMemory();
+        return NULL;
+    }
+
+   // 这里是为了避免 unicode_resize 读到未初始化的内存专门做的
+    _PyUnicode_WSTR(unicode)[0] = 0;
+    _PyUnicode_WSTR(unicode)[length] = 0;
+
+    assert(_PyUnicode_CheckConsistency((PyObject *)unicode, 0));
+    return unicode;
+}
+\end{lstlisting}
+
+从代码中可以看到 \_PyUnicode\_New 函数中 unicode 结构体和 unicode->wstr 不是一次分配出来的，
+这样验证了前面提到的 PyUnicodeObject 类型中结构体和字符串的实际数据是由两块内存保存的说法。
+
+上面 [1] 处提到了如果申请创建的 Unicode 字符串长度为 0，那么会返回一个共享的空字符串，这是 Python 的一个优化，
+公用一个空字符串可以节约部分内存，还可以避免字符串长度为 0 的 PyUnicodeObject 对象的创建和销毁成本，
+下面看一下空字符串优化的实现细节。
+
+\begin{lstlisting}[language=C, numbers=left, numbersep=1em, numberstyle=\footnotesize , breaklines=true]
+// Return a strong reference to the empty string singleton.
+static inline PyObject* unicode_new_empty(void)
+{
+    PyObject *empty = unicode_get_empty();
+    Py_INCREF(empty);
+    return empty;
+}
+
+// Return a borrowed reference to the empty string singleton.
+static inline PyObject* unicode_get_empty(void)
+{
+    struct _Py_unicode_state *state = get_unicode_state();
+    // unicode_get_empty() must not be called before _PyUnicode_Init()
+    // or after _PyUnicode_Fini()
+    assert(state->empty_string != NULL);
+    return state->empty_string;
+}
+
+static struct _Py_unicode_state*
+get_unicode_state(void)
+{
+    PyInterpreterState *interp = _PyInterpreterState_GET();
+    return &interp->unicode;
+}
+\end{lstlisting}
+
+可以看到，空字符串其实就是 PyInterpreterState 结构体中的 unicode 字段，和Python 整数实现章节中介绍的 interp->small\_ints 的初始化类似，
+这个字段的初始化是通过 \_PyUnicode\_Init 进行的。
+
+\begin{lstlisting}[language=C, numbers=left, numbersep=1em, numberstyle=\footnotesize , breaklines=true]
+PyStatus
+_PyUnicode_Init(PyInterpreterState *interp)
+{
+    struct _Py_unicode_state *state = &interp->unicode;
+    // unicode_create_empty_string_singleton 函数对 unicode 进行初始化
+    if (unicode_create_empty_string_singleton(state) < 0) {
+        return _PyStatus_NO_MEMORY();
+    }
+    // 省略初始化布隆过滤器的代码
+    return _PyStatus_OK();
+}
+
+static int
+unicode_create_empty_string_singleton(struct _Py_unicode_state *state)
+{
+    // 创建对象的时候使用size 为 1 进行申请，这样子之后使用到 state->empty_string
+    // 的地方就不需要检查是否为 NULL 了。
+    PyObject *empty = PyUnicode_New(1, 0);
+    if (empty == NULL) {
+        return -1;
+    }
+    PyUnicode_1BYTE_DATA(empty)[0] = 0;
+    _PyUnicode_LENGTH(empty) = 0;
+    assert(_PyUnicode_CheckConsistency(empty, 1));
+
+    assert(state->empty_string == NULL);
+    state->empty_string = empty;
+    return 0;
+}
+\end{lstlisting}
+
+了解了空字符串优化，继续回到 PyUnicode\_FromUnicode 调用的的另一个创建函数 PyUnicode\_FromWideChar。
+
+\begin{lstlisting}[language=C, numbers=left, numbersep=1em, numberstyle=\footnotesize , breaklines=true]
+PyObject *
+PyUnicode_FromWideChar(const wchar_t *u, Py_ssize_t size)
+{
+    PyObject *unicode;
+    Py_UCS4 maxchar = 0;
+    Py_ssize_t num_surrogates;
+
+    if (u == NULL && size != 0) {
+        PyErr_BadInternalCall();
+        return NULL;
+    }
+
+    if (size == -1) {
+        size = wcslen(u);
+    }
+
+    // 对空字符串返回共享的对象
+    if (size == 0)
+        _Py_RETURN_UNICODE_EMPTY();
+    // 处理 Oracle Solaris 操作系统上的特例，略过
+
+    // 处理单字节 latin1 字符
+    if (size == 1 && (Py_UCS4)*u < 256)
+        return get_latin1_char((unsigned char)*u);
+
+    // 找出字符串中最大的字符存储在 maxchar, 求出最大 Unicode 字符的目的是为了确定这个 Unicode 字符串
+    //可以转化为一个 UCS-1，UCS-2 还是一个 UCS-4 字符串
+    // 如果系统的 wchar_t 是采用双字节(一个unicode z字符使用两个 wchar_t 存储), 那么 num_surrogates 表示
+    // 使用两个存储双字节字符的个数。其实这里很容易理解，如果字符串数组 u 的 size 是 n，那么字符串中
+    // 存储的 unicode 字符数就是 n - num_surrogates
+    if (find_maxchar_surrogates(u, u + size,
+                                &maxchar, &num_surrogates) == -1)
+        return NULL;
+    // 这里使用 size - num_surrogates 而不是 num_surrogates 来表示字符数目是因为 u 的末尾可能有一个空字符
+    unicode = PyUnicode_New(size - num_surrogates, maxchar);
+    if (!unicode)
+        return NULL;
+    // 将 Unicode 字符串 u 转化为 PyUnicode_1BYTE_KIND/PyUnicode_2BYTE_KIND/
+    // PyUnicode_4BYTE_KIND 中的一种格式
+    switch (PyUnicode_KIND(unicode)) {
+    case PyUnicode_1BYTE_KIND:
+        _PyUnicode_CONVERT_BYTES(Py_UNICODE, unsigned char,
+                                u, u + size, PyUnicode_1BYTE_DATA(unicode));
+        break;
+    case PyUnicode_2BYTE_KIND:
+#if Py_UNICODE_SIZE == 2
+        memcpy(PyUnicode_2BYTE_DATA(unicode), u, size * 2);
+#else
+        _PyUnicode_CONVERT_BYTES(Py_UNICODE, Py_UCS2,
+                                u, u + size, PyUnicode_2BYTE_DATA(unicode));
+#endif
+        break;
+    case PyUnicode_4BYTE_KIND:
+#if SIZEOF_WCHAR_T == 2
+        unicode_convert_wchar_to_ucs4(u, u + size, unicode);
+#else
+        assert(num_surrogates == 0);
+        memcpy(PyUnicode_4BYTE_DATA(unicode), u, size * 4);
+#endif
+        break;
+    default:
+        Py_UNREACHABLE();
+    }
+    return unicode_result(unicode);
+}
+\end{lstlisting}
+
+可以看到 PyUnicode\_FromWideChar 的流程虽然很复杂，但是功能其实蛮清晰的，就是把一个用 wchar\_t 数组存储的 Unicode 字符串转化为
+一个 PyUnicodeObject 对象。
+
+下面接着分析 PyUnicode\_FromStringAndSize 函数的实现，PyUnicode\_FromStringAndSize 和 PyUnicode\_FromUnicode 函数
+很类似，只是它的第一个参数 u 是一个 UTF-8 编码的字节数组。
+
+\begin{definition}[UTF-8编码介绍] \label{def:int}
+UTF-8 是 Unicode 编码的一种实现方式，它是一种变长的编码，使用 1 到 4 个字节来表示一个 Unicode 符号。Unicode 的编码规则如下:
+\begin{itemize}
+\item 对于单字节的符号，字节的第一位设为 0，后面 7 位为这个符号的 Unicode 码。因此对于英语字母，UTF-8 编码和 ASCII 码是相同的。
+\item 对于 n 字节的符号（n > 1），第一个字节的前 n 位都设为 1，第 n + 1 位设为0，后面字节的前两位一律设为 10。剩下的没有提及的二进制位，全部为这个符号的 Unicode 码。
+\end{itemize}
+\end{definition}
+
+\begin{lstlisting}[language=C, numbers=left, numbersep=1em, numberstyle=\footnotesize , breaklines=true]
+PyObject *
+PyUnicode_FromStringAndSize(const char *u, Py_ssize_t size)
+{
+    if (size < 0) {
+        PyErr_SetString(PyExc_SystemError,
+                        "Negative size passed to PyUnicode_FromStringAndSize");
+        return NULL;
+    }
+    if (u != NULL) {
+        // 如果字符数组不为空，那么将 UTF-8 编码的字符串转化为一个使用 UCS-1，UCS-2 
+        // 或 UCS-4 编码的 PyUnicodeObject 对象
+        return PyUnicode_DecodeUTF8Stateful(u, size, NULL, NULL);
+    }
+    else {
+        if (size > 0) {
+            if (PyErr_WarnEx(PyExc_DeprecationWarning,
+                    "PyUnicode_FromStringAndSize(NULL, size) is deprecated; "
+                    "use PyUnicode_New() instead", 1) < 0) {
+                return NULL;
+            }
+        }
+        return (PyObject *)_PyUnicode_New(size);
+    }
+}
+\end{lstlisting}
+
+上面介绍了 PyUnicodeObject 对象的两种创建方式，一种是 wchar\_t 字符数组转化为 PyUnicodeObject 对象，另一种是 UTF-8 
+数组转化为 PyUnicodeObject 对象。下面回到基础的部分也是我们日常接触的最多的部分，也就是 PyASCIIObject 对象的创建。
+创建 PyASCIIObject 的函数接口是 PyUnicode\_New。PyUnicode\_New 函数不仅仅用来创建 PyASCIIObject，事实上，在 PEP 393
+之后，它就是创建一个 Unicode 对象最推荐的方式。PyUnicode\_New 会申请一整块内存用来存储 Unicode 对象和对应的字符串，
+所以使用这个函数创建的 Unicode 对象都是不可以重新分配大小的。
+
+\begin{lstlisting}[language=C, numbers=left, numbersep=1em, numberstyle=\footnotesize , breaklines=true]
+PyObject *
+PyUnicode_New(Py_ssize_t size, Py_UCS4 maxchar)
+{
+    // 空字符串优化
+    if (size == 0) {
+        return unicode_new_empty();
+    }
+
+    PyObject *obj;
+    PyCompactUnicodeObject *unicode;
+    void *data;
+    enum PyUnicode_Kind kind;
+    int is_sharing, is_ascii;
+    Py_ssize_t char_size;
+    Py_ssize_t struct_size;
+
+    is_ascii = 0;
+    is_sharing = 0;
+    struct_size = sizeof(PyCompactUnicodeObject);
+    if (maxchar < 128) {
+        kind = PyUnicode_1BYTE_KIND;
+        char_size = 1;
+        is_ascii = 1;
+        struct_size = sizeof(PyASCIIObject);
+    }
+    else if (maxchar < 256) {
+        kind = PyUnicode_1BYTE_KIND;
+        char_size = 1;
+    }
+    else if (maxchar < 65536) {
+        kind = PyUnicode_2BYTE_KIND;
+        char_size = 2;
+        if (sizeof(wchar_t) == 2)
+            is_sharing = 1;
+    }
+    else {
+        if (maxchar > MAX_UNICODE) {
+            PyErr_SetString(PyExc_SystemError,
+                            "invalid maximum character passed to PyUnicode_New");
+            return NULL;
+        }
+        kind = PyUnicode_4BYTE_KIND;
+        char_size = 4;
+        if (sizeof(wchar_t) == 4)
+            is_sharing = 1;
+    }
+
+    // 处理 size 为负数或者超过最大值的情况
+    if (size < 0) {
+        PyErr_SetString(PyExc_SystemError,
+                        "Negative size passed to PyUnicode_New");
+        return NULL;
+    }
+    if (size > ((PY_SSIZE_T_MAX - struct_size) / char_size - 1))
+        return PyErr_NoMemory();
+
+    // 给 PyCompactUnicodeObject 结构体和字符数组申请空间
+    obj = (PyObject *) PyObject_Malloc(struct_size + (size + 1) * char_size);
+    if (obj == NULL) {
+        return PyErr_NoMemory();
+    }
+    // 对象类型初始化
+    _PyObject_Init(obj, &PyUnicode_Type);
+
+    unicode = (PyCompactUnicodeObject *)obj;
+    // 这里这个判断需要注意，如果保存的字符串都是 ASCII 字符，那么字符数组会被
+    // 保存到 PyASCIIObject 结构体的最末尾位置
+    // 如果不是纯 ASCII 字符串，那吗字符数组会被保存到 PyCompactUnicodeObject 结构体
+    // 的最末尾位置，所以下面的代码其实就是就是在确定字符数组的地址
+    if (is_ascii)
+        data = ((PyASCIIObject*)obj) + 1;
+    else
+        data = unicode + 1;
+    _PyUnicode_LENGTH(unicode) = size;
+    _PyUnicode_HASH(unicode) = -1;
+    _PyUnicode_STATE(unicode).interned = 0;
+    _PyUnicode_STATE(unicode).kind = kind;
+    _PyUnicode_STATE(unicode).compact = 1;
+    _PyUnicode_STATE(unicode).ready = 1;
+    _PyUnicode_STATE(unicode).ascii = is_ascii;
+    // 字符数组末尾添加一个空字符并且将用不到的字符数组指针设置为空
+    if (is_ascii) {
+        ((char*)data)[size] = 0;
+        _PyUnicode_WSTR(unicode) = NULL;
+    }
+    else if (kind == PyUnicode_1BYTE_KIND) {
+        ((char*)data)[size] = 0;
+        _PyUnicode_WSTR(unicode) = NULL;
+        _PyUnicode_WSTR_LENGTH(unicode) = 0;
+        unicode->utf8 = NULL;
+        unicode->utf8_length = 0;
+    }
+    else {
+        unicode->utf8 = NULL;
+        unicode->utf8_length = 0;
+        if (kind == PyUnicode_2BYTE_KIND)
+            ((Py_UCS2*)data)[size] = 0;
+        else /* kind == PyUnicode_4BYTE_KIND */
+            ((Py_UCS4*)data)[size] = 0;
+        // is_sharing 标记用来决定要不要给 unicode->wstr 指针赋值，也指向保存字符数组的位置
+        if (is_sharing) {
+            _PyUnicode_WSTR_LENGTH(unicode) = size;
+            _PyUnicode_WSTR(unicode) = (wchar_t *)data;
+        }
+        else {
+            _PyUnicode_WSTR_LENGTH(unicode) = 0;
+            _PyUnicode_WSTR(unicode) = NULL;
+        }
+    }
+#ifdef Py_DEBUG
+    unicode_fill_invalid((PyObject*)unicode, 0);
+#endif
+    assert(_PyUnicode_CheckConsistency((PyObject*)unicode, 0));
+    return obj;
+}
+\end{lstlisting}
+
+
+
+
+
+
+
+
+\section{参考}
+
+\begin{itemize}
+\item \href{https://peps.python.org/pep-0393/}{PEP 393 – Flexible String Representation}
+\item \href{https://developer.mozilla.org/en-US/docs/Glossary/code_point}{Code point}
+\item \href{https://www.ruanyifeng.com/blog/2007/10/ascii_unicode_and_utf-8.html}{字符编码笔记：ASCII，Unicode 和 UTF-8}
+\end{itemize}

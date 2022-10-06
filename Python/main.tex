@@ -1,0 +1,195 @@
+\documentclass[lang=cn,10pt]{elegantbook}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% 包设置
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\usepackage[ruled,noline]{algorithm2e} % 算法包
+%\setlength{\lineskip}{2em} %设置行间距
+\setlength{\parskip}{0.7em} %设置段落间距
+
+% 本文档命令
+\usepackage{array}
+\newcommand{\ccr}[1]{\makecell{{\color{#1}\rule{1cm}{1cm}}}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% 封面设置
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\title{Python 3.10 代码分析}
+\author{kenshinl}
+\date{Last Update: \today}
+\version{0.1}
+\bioinfo{封面图片作者}{Elina Bernpaintner}
+\extrainfo{人生代代无穷已，江月年年望相似。}
+\setcounter{tocdepth}{3}
+\cover{cover.jpg}
+% 修改标题页的橙色带
+\definecolor{customcolor}{RGB}{255, 255, 255}
+\colorlet{coverlinecolor}{customcolor}
+
+\begin{document}
+\maketitle
+\frontmatter
+\tableofcontents
+\mainmatter
+
+
+% TODO LIST
+% 添加一节介绍 GIL 的实现
+
+%%%%%%%%
+% draw.io导出图像标准
+% png 400ppi 边框宽度为 5 非透明
+
+
+\include{chapter1} % 环境准备
+%\include{chapter2} % 字节码介绍
+\include{chapter2} % 内存管理
+\include{chapter3} % PyObject 与 PyVarObject
+\include{chapter4} % Python 浮点数对象
+\include{chapter5} % Python 整数对象
+\include{chapter6} % Python 字符串对象
+\include{chapter7} % Python List 对象
+\include{chapter8} % Python Dict 对象
+\include{bytecode} % Python 字节码
+
+%
+%
+%\chapter{Python dict 对象}
+%
+%\section{参考资料}
+%
+%本节列一下参考资料。
+%
+%
+%
+%\chapter{pyc 文件分析}
+%
+%本节介绍一下 Python pyc 文件的相关信息。
+%
+%\section{参考资料}
+%
+%本节列一下参考资料。
+%
+%
+%\chapter{Python 虚拟机框架}
+%
+%本章介绍一下 Python 虚拟机的基本框架。
+%
+%\section{参考资料}
+%
+%本节列一下参考资料。
+%
+%
+%\chapter{Python 虚拟机中的一般表达式}
+%
+%本章介绍一下 Python 虚拟机中的一般表达式的处理。
+%
+%\section{参考资料}
+%
+%本节列一下参考资料。
+%
+%
+%\chapter{Python虚拟机中的控制流}
+%
+%本章介绍一下 Python 虚拟机中的控制流。
+%
+%\section{参考资料}
+%
+%本节列一下参考资料。
+%
+%
+%\chapter{Python 虚拟机中的函数}
+%
+%本章介绍一下 Python 虚拟机中函数的实现。
+%
+%\section{参考资料}
+%
+%本节列一下参考资料。
+%
+%
+%\chapter{Python 虚拟机中的类}
+%
+%本章介绍一下 Python 虚拟机中类的实现。
+%
+%\section{meta class}
+%
+%本节介绍一下 Python 虚拟机中元类的实现。
+%
+%\section{参考资料}
+%
+%本节列一下参考资料。
+%
+%
+%\chapter{Python 运行环境初始化过程}
+%
+%本章介绍一下 Python 运行环境初始化的过程。
+%
+%\section{参考资料}
+%
+%本节列一下参考资料。
+%
+%
+%\chapter{Python 模块的加载机制}
+%
+%本章介绍一下 Python 模块的加载机制。
+%
+%\section{参考资料}
+%
+%本节列一下参考资料。
+%
+%
+%
+%\chapter{Python 多线程机制}
+%
+%本章介绍一下 Python 多线程机制。
+%
+%\section{参考资料}
+%
+%本节列一下参考资料。
+%
+%
+%
+%\chapter{Python 内存管理机制}
+%
+%本章介绍一下 Python 内存管理机制。
+%
+%\section{参考资料}
+%
+%本节列一下参考资料。
+%
+%
+%
+%\chapter{Python C 拓展}
+%
+%本章介绍一下 Python 的 C 拓展的解析机制。
+%
+%\section{参考资料}
+%
+%本节列一下参考资料。
+%
+%
+%
+%\chapter{Python trackback 机制}
+%
+%本章介绍一下 Python 的 trackback 机制。
+%
+%\section{参考资料}
+%
+%本节列一下参考资料。
+%
+%
+%
+%\chapter{Python 热更新机制}
+%
+%本章介绍一下 Python 的热更新机制。
+%
+%\section{参考资料}
+%
+%本节列一下参考资料。
+%
+%
+%
+
+
+
+\end{document}

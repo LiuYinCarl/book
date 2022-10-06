@@ -1,0 +1,72 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% Python 字节码
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\chapter{Python 字节码}
+
+\section{line number table}
+
+Python 需要一个对照表结构来表明字节码和源代码的对照关系。最简单来说，要实现这样子一张对照表，
+需要对每行 Python 源代码需要三个字段。字节码开始位置，字节码结束位置，该段字节码对应的源代码
+行，需要源代码行的原因是源代码并不是每一行都有内容，而是可能会存在空行。
+
+考虑如下最简单的对照表
+
+\begin{lstlisting}[language=C, numbers=left, numbersep=1em, numberstyle=\footnotesize , breaklines=true]
+     Start    End     Line
+      0       6       1
+      6       50      2
+      50      350     7
+      350     360     No line number
+      360     376     8
+      376     380     208
+\end{lstlisting}
+
+如果 Start, End, Line 每一个字段都用 4 字节来表示的话，那么每一行就需要 12 字节，这个内存消耗显然
+太大了，所以需要压缩存储对照表使用的内存空间。可以发现，上表中，每一行的 End 等于下一行的 Start，
+每一行的 Line 也可以改为相对上一行 Line 的偏移（第一行的 Line 一定是相对于 0 来计算的），那么每一行
+就可以改为两列 (End - Start, Line 相对上一行的偏移)，所以可以得出下面这个偏移表。
+
+\begin{lstlisting}[language=C, numbers=left, numbersep=1em, numberstyle=\footnotesize , breaklines=true]
+   End-Start  Line-delta
+      6         +1
+      44        +1
+      300       +5
+      10        No line number
+      16        +1
+      4         +200
+\end{lstlisting}
+
+这个更改减少了一列，节约了 $\frac{1}{3}$ 的空间。但是还可以继续优化，在实际的代码中，我们发现，End - Start
+ 和 Line 相对上一行的偏移大部分情况下都是一个小整数，所以，End - Start 和 Line-delta 都应该可以优化为用一个字节
+ 表示。End-Start 可以优化为一个 [0, 254] 的整数，Line-delta 可以优化为 [-128, 127] 的整数，Line-delta 的 -128 用来表示
+ 这一列没有行号，0 表示这一列没有字节码（实质上是用来分解上一列的 End-Start 的，因为每一列的 End-Start 允许的
+ 最大值为 254，超过了这个值，就需要分解为多行）。在这个限制条件下，可以得出第三种对照表，这个对照表就是内存
+ 中最后实际存储的对照表。在这个条件下，对照表每一列只需要两字节的存储空间，在最优的情况下，相比于原版每一列
+ 12 字节，节约了 $\frac{5}{6}$ 的空间。
+ 
+\begin{lstlisting}[language=C, numbers=left, numbersep=1em, numberstyle=\footnotesize , breaklines=true]
+    Start delta   Line delta
+    6               +1
+    44              +1
+    254             +5
+    46              0     // 上一列的 START delta 为 300，超过了 254 的上限，所以需要分解为 254 + 46 两列
+    10              -128 (No line number, treated as a delta of zero)
+    16              +1
+    0               +127 (line 135, but the range is empty as no bytecodes are at line 135)
+    4               +73 // 上一列的 Line delta 为 200，超过了 127 的上限，所以需要分解为 127 + 73 两列
+\end{lstlisting}
+
+
+
+
+
+
+
+
+
+
+
+
+
+

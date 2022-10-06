@@ -1,0 +1,47 @@
+\documentclass[lang=cn,10pt]{elegantbook}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% 包设置
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\usepackage[ruled,noline]{algorithm2e} % 算法包
+%\setlength{\lineskip}{2em} %设置行间距
+\setlength{\parskip}{0.7em} %设置段落间距
+% 设置代码框内的行间距
+\AtBeginEnvironment{lstlisting}{\linespread{1.0}}
+
+% 本文档命令
+\usepackage{array}
+\newcommand{\ccr}[1]{\makecell{{\color{#1}\rule{1cm}{1cm}}}}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% 封面设置
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\title{Linux 常用工具手册}
+\author{kenshinl}
+\date{Last Update: \today}
+\version{0.1}
+\bioinfo{封面图片作者}{Elina Bernpaintner}
+\extrainfo{Linux Command Handbook。—— kenshinl}
+\setcounter{tocdepth}{3}
+%\logo{logo-blue.png}
+\cover{cover.jpg}
+% 修改标题页的橙色带
+\definecolor{customcolor}{RGB}{255, 255, 255}
+\colorlet{coverlinecolor}{customcolor}
+
+
+\begin{document}
+\maketitle
+\frontmatter
+\tableofcontents
+\mainmatter
+
+
+\include{chapter0}
+\include{chapter1}
+\include{chapter2}
+\include{chapter3}
+
+\end{document}

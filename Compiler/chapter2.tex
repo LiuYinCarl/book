@@ -1,0 +1,103 @@
+\chapter{一些概念和问题}
+
+\section*{First集和Follow集的作用}
+
+
+\subsection*{算法实现}
+
+\begin{algorithm}[H]
+    \renewcommand{\thealgocf}{}
+    \caption{\texttt{求nullable、FIRST 集和 FOLLOW 集}}
+%    \KwIn{None}
+%    \KwOut{None}
+将所有的 FIRST 和 FOLLOW 集合初始化为空，将所有的 nullable 初始化为 false \\
+\For {每一个终结符 $Z$} {
+	$FIRST[Z] \leftarrow \{Z\}$
+}
+
+\Repeat {$FIRST$ 、$FOLLOW$ 和 $nullable$ 在此轮迭代中没有改变} {
+\For {每个产生式 $X \rightarrow Y_{1}Y_{2} \cdots Y_{k}$} {
+	\For {每个 $i$ 从 $1$ 到 $k$,每个 $j$ 从$i+1$到$k$} {
+		\If {所有 $Y_{i}$都是可为空的}{
+			$nullable[X] \leftarrow true$ \\
+		}
+		\If {$Y_{1} \cdots Y_{i-1}$都是可为空的}{
+			$FIRST[X] \leftarrow FIRST[X] \cup FIRST[Y_{i}]$ \\
+		}
+		\If {$Y_{i+1} \cdots Y_{k}$ 都是可为空的}{
+			$FOLLOW[Y_{i}] \leftarrow FOLLOW[Y_{i}] \cup FOLLW[X]$ \\
+		}
+		\If {$Y_{i+1} \cdots Y_{j-1}$都是可为空的}{
+			$FOLLOW[Y_{i}] \leftarrow FOLLOW[Y_{i}] \cup FIRST[Y_{j}]$ \\
+		}
+	}
+}
+}
+
+\end{algorithm}
+
+
+
+\section*{词法分析和语法分析的关联体现在什么地方}
+
+
+\section*{左递归带来的问题是什么}
+
+要搞清楚这个问题，首先需要知道什么是左递归。左递归的定义如下：
+
+对于上下文无关文法的一个规则来说，如果其右侧第一个符号与左侧符号相同或者能够推导出左侧符号，
+那么称该规则为左递归的。前一种情况称为直接左递归，后一种情况成为间接左递归。
+
+
+
+以一个经典的包含左递归的表达式语法为例。
+
+\begin{lstlisting}[caption={经典表达式文法}]
+Goal   -> Expr
+Expr   -> Expr + Term
+Expr   |  Expr - Term
+       |  Term
+Term   -> Term * Factor
+Term   |  Term / Factor
+       |  Factor
+Factor -> ( Expr )
+       |  num
+       | name
+\end{lstlisting}
+
+左递归是自顶向下语法分析中需要专门处理的一个问题。自定向下语法语法分析是指从语法分析树的根开始，
+系统地向下拓展树，直至树的叶结点与词法分析器返回地已归类单词相匹配。在过程的每一点上，都需要考虑
+一个部分完成的语法分析树。过程在树的下边缘选择一个非终结符，选定某个适用于该非终结符的产生式，用
+与产生式右侧相对应的子树来拓展该结点。终结符是无法拓展的。这个过程会一直持续下去，直到语法分析树
+的下边缘只包含终结符，且输入流已经耗尽。
+
+从上面的描述中可以看出，自顶向下语法分析的关键就是选择一个合适的非终结符进行拓展。以句子
+a+b*c 为例，了解左递归对自顶向下语法分析带来的问题。
+
+\begin{lstlisting}[caption={自顶向下语法分析 a+b*c}]
+规则0  Expr
+规则1  Expr + Term
+规则1  Expr + Term + Term
+规则1  Expr + Term + Term + Term
+...
+\end{lstlisting}
+
+在第二行开始，语法分析器知道非终结符 Expr 和输入单词 a，它选择规则1进行匹配，在第三行，语法分析器
+还是面临非终结符 Expr 和输入单词 a，他继续选择规则1进行匹配，导致了无限循环。这也就是左递归给自顶向下
+语法分析带来的问题。在这个例子中，语法分析器向前多看一个单词在这里可以解决问题，但是如果语法足够复杂，
+左递归仍然会导致这个问题。所以，需要有一个算法来消除左递归。对于直接左递归，可以采用如下的方式。
+
+\begin{lstlisting}[caption={消除直接左递归}]
+Fee -> Fee @($\alpha$)@
+    |  @($\beta$)@
+    
+转换为如下产生式
+
+Fee  -> @($\beta$)@ Fee'
+Fee' -> @($\alpha$)@ Fee'
+     |  @($\epsilon$)@
+\end{lstlisting}
+
+对于间接左递归的消除算法就不在这里描述了。
+
+\section*{什么是递归下降分析器}

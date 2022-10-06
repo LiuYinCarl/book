@@ -1,0 +1,88 @@
+\chapter{系统属性查看}
+
+本章节主要介绍一些查看系统属性、文件熟悉的Linux程序。
+
+\section{file}
+
+file 程序会测试每个参数来尝试对文件进行分类。按如下顺序执行三组测试：文件系统测试、魔术测试、
+语言测试。按这个顺序，哪个测试成功了，就打印对应的文件类型。
+
+打印的文件类型通常为下面几类:
+\begin{itemize}
+    \item text 文本类型，只包含可打印字符和一些控制字符。
+    \item executable 可执行文件类型。
+    \item data 数据类型，表示除上面两类外的其他类型，文件内容通常是二进制或不可打印的格式。
+\end{itemize}
+
+file 命令至少从 Research Version 4 版本就被添加到了 UNIX 系统中，System V 系统版本引入了
+魔法类型的外部列表，稍微减慢了 file 程序的速度但是使得程序更加灵活。
+
+版本：file-5.38
+
+\subsection{用法和参数}
+
+\begin{lstlisting}[language=bash, numbersep=1em, numberstyle=\footnotesize , breaklines=true]
+file [-bcdEhiklLNnprsSvzZ0] [--apple] [--exclude-quiet]
+      [--extension] [--mime-encoding] [--mime-type] [-e testname]
+      [-F separator] [-f namefile] [-m magicfiles] [-P name=value]
+      file ...
+
+     -b, --brief
+	     不要将文件名添加到输出行（简要模式）
+
+     -i, --mime
+             输出文件的 mime type 字符串。
+
+     --mime-type, --mime-encoding
+             和 -i 类似，但是只打印指定类型的元素
+             
+     -p, --preserve-date
+             在支持 utime(3) 或者 utimes(2) 的系统上，让 file 命令在执行的
+             时候不修改文件的访问时间
+
+     -r, --raw
+             不将不可大打印的字符转换成八进制，一般而言，file 指令会将不可打印
+             的字符转换成八进制表示
+             
+     -0, --print0
+             在文件名之后输出一个 '\0' 字符，便于使用 cut 指令进行分割，这个
+             参数不会影响分隔符的正常输出
+
+             如果这个参数被重复多次，file 会在输出的每个字段之后都加上一个 NUL('\0')
+
+\end{lstlisting}
+
+\subsection{使用示例}
+使用到的测试文件如下。
+
+file.txt
+\begin{lstlisting}[language=bash, numbersep=1em, numberstyle=\footnotesize , breaklines=true]
+file cmd test.
+\end{lstlisting}
+
+各参数使用例子。
+\begin{lstlisting}[language=bash, numbersep=1em, numberstyle=\footnotesize , breaklines=true]
+$ file file.txt
+file.txt: ASCII text
+
+$ file -b file.txt
+ASCII text
+
+$ file -i file.txt
+file.txt: text/plain; charset=us-ascii
+
+$ file --mime-encoding file.txt
+file.txt: us-ascii
+
+$ file file.txt | cut -d '' -f 1
+file.txt: ASCII text
+
+$ file file.txt -0 | cut -d '' -f 1
+file.txt
+\end{lstlisting}
+
+
+\subsection{文档}
+\begin{itemize}
+\item \href{https://man7.org/linux/man-pages/man1/file.1.html}{在线手册}
+\end{itemize}

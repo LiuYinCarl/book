@@ -1,0 +1,53 @@
+\documentclass[lang=cn,10pt]{elegantbook}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% 包设置
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\usepackage[ruled,noline]{algorithm2e} % 算法包
+%\setlength{\lineskip}{2em} %设置行间距
+\setlength{\parskip}{0.7em} %设置段落间距
+% 设置代码框内的行间距
+\AtBeginEnvironment{lstlisting}{\linespread{1.0}}
+
+\lstset{
+    basicstyle = \ttfamily,           % 基本样式 + 小号字体
+    breaklines = true,                  % 代码过长则换行
+    frame = shadowbox,                  % 用（带影子效果）方框框住代码块
+    showspaces = false,                 % 不显示空格
+    columns = fixed,                    % 字间距固定
+    numbers=left,                       % 左侧展示行号
+    numberstyle=\it,                    % 斜体行号
+    escapeinside={@(}{)@},  % 设置 escape 字符，放置在 @( )@ 中间的内容会被当作 LaTex 进行解释,例如 @($\alpha$)@
+}
+
+% 本文档命令
+\usepackage{array}
+\newcommand{\ccr}[1]{\makecell{{\color{#1}\rule{1cm}{1cm}}}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% 封面设置
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\title{编译原理笔记}
+\author{kenshinl}
+\date{Last Update: \today}
+\version{0.1}
+\bioinfo{封面图片作者}{Elina Bernpaintner}
+\extrainfo{人生代代无穷已，江月年年望相似。}
+\setcounter{tocdepth}{3}
+\cover{cover.jpg}
+% 修改标题页的橙色带
+\definecolor{customcolor}{RGB}{255, 255, 255}
+\colorlet{coverlinecolor}{customcolor}
+
+
+\begin{document}
+\maketitle
+\frontmatter
+\tableofcontents
+\mainmatter
+
+
+\include{chapter1} % 《编译原理 第二版》笔记
+\include{chapter2} % 一些概念和问题
+
+\end{document}
