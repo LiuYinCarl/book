@@ -4,7 +4,7 @@
 from prettytable import PrettyTable
 
 
-class Parser(object):
+class FirstFollowParser(object):
     def __init__(self, grammars:list):
         self.grammars = grammars
         self.terms = set() # 终结符
@@ -144,4 +144,4 @@ grammars4 = [
     "F -> ( E )",
 ]
 
-parser = Parser(grammars4)
+parser = FirstFollowParser(grammars4)
