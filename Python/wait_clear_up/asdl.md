@@ -37,7 +37,7 @@ options
 CPython ASDL parser 作者
 https://eli.thegreenplace.net/2014/06/04/using-asdl-to-describe-asts-in-compilers
 
-
+https://github.com/chinesehuazhou/guido_blog_translation
 
 
 asdl parser 的实现在 asdl.py
@@ -47,6 +47,15 @@ c code generator 的实现在 asdl_c.py
 asdl_c.py 的输入文件为 Python.asdl
 
 输出文件为 Include/Python_ast.c ...
+
+```makefile
+$(PYTHON_FOR_REGEN) $(srcdir)/Parser/asdl_c.py \
+    $(srcdir)/Parser/Python.asdl \
+    -H $(srcdir)/Include/internal/pycore_ast.h.new \
+    -I $(srcdir)/Include/internal/pycore_ast_state.h.new \
+    -C $(srcdir)/Python/Python-ast.c.new
+```
+
 
 
 ### 调用链分析

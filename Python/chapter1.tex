@@ -14,6 +14,9 @@
 第一步是下载 Python 代码并切换到 Python 3.10.4 版本。
 
 \begin{lstlisting}[language=bash, numbers=left, numbersep=1em, numberstyle=\footnotesize , breaklines=true]
+# 安装开发包(非必需)
+$ apt install  libffi-dev libbz2-dev libncursesw5-dev libgdbm-dev liblzma-dev libsqlite3-dev tk-dev uuid-dev libreadline-dev
+
 # 从 github 克隆代码
 $ git clone https://github.com/python/cpython.git
 # 切换到 v3.10.4
@@ -34,6 +37,10 @@ $ ./configure --with-pydebug
 # 编译代码
 $ make -j8
 \end{lstlisting}
+
+上面编译过程中使用的默认优化参数是 -g -Og，如果希望修改成零优化，可以修改生成的 Makefile 文件，将 OPT= -g -O0 -Wall
+修改为 OPT= -g -O0 -Wall。这次修改会在下次重新执行 ./configure 之前保持有效，因为每次执行 ./configure 都会重新生成
+Makefile 文件。
 
 在编译完成之后，可以在当前目录看到一个叫做 python.exe 的文件（在 Linux 系统下，编译出来的可执行文件名是 python），
 这个文件就是我们正常使用的 Python 程序了。
