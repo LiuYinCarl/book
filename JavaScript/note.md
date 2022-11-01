@@ -365,3 +365,134 @@ for-of 循环会按照可迭代对象的 next()方法产生值的顺序迭代元
 ECMAScript 变量可以包含两种不同类型的数据：原始值和引用值。原始值（primitive value）就是最简单的数据，引用值（reference value）则是由多个值构成的对象。
 
 在把一个值赋给变量时，JavaScript 引擎必须确定这个值是原始值还是引用值。上一章讨论了 6 种原始值：Undefined、Null、Boolean、Number、String 和 Symbol。保存原始值的变量是按值（by value）访问的，因为我们操作的就是存储在变量中的实际值。 引用值是保存在内存中的对象。与其他语言不同，JavaScript 不允许直接访问内存位置，因此也就不能直接操作对象所在的内存空间。在操作对象时，实际上操作的是对该对象的引用（reference）而非 实际的对象本身。为此，保存引用值的变量是按引用（by reference）访问的。
+
+注意，原始类型的初始化可以只使用原始字面量形式。如果使用的是 new 关键字，则 JavaScript 会
+创建一个 Object 类型的实例，但其行为类似原始值。
+
+除了存储方式不同，原始值和引用值在通过变量复制时也有所不同。在通过变量把一个原始值赋值到另一个变量时，原始值会被复制到新变量的位置。
+
+在把引用值从一个变量赋给另一个变量时，存储在变量中的值也会被复制到新变量所在的位置。区别在于，这里复制的值实际上是一个指针，它指向存储在堆内存中的对象。操作完成后，两个变量实际上指向同一个对象，因此一个对象上面的变化会在另一个对象上反映出来。
+
+typeof 虽然对原始值很有用，但它对引用值的用处不大。我们通常不关心一个值是不是对象，而是想知道它是什么类型的对象。为了解决这个问题，ECMAScript 提供了 instanceof 操作符，语法如下：
+
+```js
+result = variable instanceof constructor
+```
+
+如果变量是给定引用类型（由其原型链决定）的实例，则 instanceof 操作符返回 true。按照定义，所有引用值都是 Object 的实例，因此通过 instanceof 操作符检测任何引用值和Object 构造函数都会返回 true。类似地，如果用 instanceof 检测原始值，则始终会返回 false，因为原始值不是对象。
+
+在使用 var 声明变量时，变量会被自动添加到最接近的上下文。在函数中，最接近的上下文就是函
+数的局部上下文。在 with 语句中，最接近的上下文也是函数上下文。如果变量未经声明就被初始化了，
+那么它就会自动被添加到全局上下文，如下面的例子所示:
+
+```js
+function add(num1, num2) { 
+    sum = num1 + num2; 
+    return sum; 
+} 
+let result = add(10, 20); // 30 
+console.log(sum); // 30 
+```
+
+严格来讲，let 在 JavaScript 运行时中也会被提升，但由于“暂时性死区”（temporal dead zone）的缘故，实际上不能在声明之前使用 let 变量。因此，从写 JavaScript 代码的角度说，let 的提升跟 var 是不一样的。
+
+
+## 基本引用类型
+
+引用值（或者对象）是某个特定引用类型的实例。在 ECMAScript 中，引用类型是把数据和功能组织到一起的结构，经常被人错误地称作“类”。虽然从技术上讲 JavaScript 是一门面向对象语言，但
+ECMAScript 缺少传统的面向对象编程语言所具备的某些基本结构，包括类和接口。引用类型有时候也
+被称为对象定义，因为它们描述了自己的对象应有的属性和方法。对象被认为是某个特定引用类型的实例。新对象通过使用 new 操作符后跟一个构造函数（constructor）来创建。构造函数就是用来创建新对象的函数，比如下面这行代码：
+
+```js
+let now = new Date(); 
+```
+
+这行代码创建了引用类型 Date 的一个新实例，并将它保存在变量 now 中。Date()在这里就是构造函数，它负责创建一个只有默认属性和方法的简单对象。**函数也是一种引用类型。**
+
+### 原始值包装类型
+
+为了方便操作原始值，ECMAScript 提供了 3 种特殊的引用类型：Boolean、Number 和 String。这些类型具有本章介绍的其他引用类型一样的特点，但也具有与各自原始类型对应的特殊行为。每当用到某个原始值的方法或属性时，后台都会创建一个相应原始包装类型的对象，从而暴露出操作原始值的各种方法。来看下面的例子：
+
+```js
+let s1 = "some text"; 
+let s2 = s1.substring(2); 
+```
+
+在这里，s1 是一个包含字符串的变量，它是一个原始值。第二行紧接着在 s1 上调用了 substring()
+方法，并把结果保存在 s2 中。我们知道，原始值本身不是对象，因此逻辑上不应该有方法。而实际上
+这个例子又确实按照预期运行了。这是因为后台进行了很多处理，从而实现了上述操作。具体来说，当
+第二行访问 s1 时，是以读模式访问的，也就是要从内存中读取变量保存的值。在以读模式访问字符串
+值的任何时候，后台都会执行以下 3 步：
+(1) 创建一个 String 类型的实例
+(2) 调用实例上的特定方法；
+(3) 销毁实例。
+可以把这 3 步想象成执行了如下 3 行 ECMAScript 代码：
+
+```js
+let s1 = new String("some text"); 
+let s2 = s1.substring(2); 
+s1 = null; 
+```
+
+**在原始值包装类型的实例上调用 typeof 会返回"object"，所有原始值包装对象都会转换为布尔值 true。**
+
+引用类型与原始值包装类型的主要区别在于对象的生命周期。在通过 new 实例化引用类型后，得到的实例会在离开作用域时被销毁，而自动创建的原始值包装对象则只存在于访问它的那行代码执行期间。这意味着不能在运行时给原始值添加属性和方法。
+
+```js
+let s1 = "some text"; 
+s1.color = "red"; 
+console.log(s1.color); // undefined 
+```
+
+这里的第二行代码尝试给字符串 s1 添加了一个 color 属性。可是，第三行代码访问 color 属性时，
+它却不见了。原因就是第二行代码运行时会临时创建一个 String 对象，而当第三行代码执行时，这个对象已经被销毁了。实际上，第三行代码在这里创建了自己的 String 对象，但这个对象没有 color 属性。
+
+注意，使用 new 调用原始值包装类型的构造函数，与调用同名的转型函数并不一样。例如：
+
+```js
+let value = "25"; 
+let number = Number(value); // 转型函数
+console.log(typeof number); // "number" 
+let obj = new Number(value); // 构造函数
+console.log(typeof obj); // "object" 
+```
+
+在这个例子中，变量 number 中保存的是一个值为 25 的原始数值，而变量 obj 中保存的是一个Number 的实例。
+
+
+### 单例内置对象
+
+Global 对象是 ECMAScript 中最特别的对象，因为代码不会显式地访问它。ECMA-262 规定 Global
+对象为一种兜底对象，它所针对的是不属于任何对象的属性和方法。事实上，不存在全局变量或全局函
+数这种东西。在全局作用域中定义的变量和函数都会变成 Global 对象的属性。包括 isNaN()、isFinite()、parseInt()和 parseFloat()，实际上都是 Global 对象的方法。除了这些，Global 对象上还有另外一些方法。
+
+
+### URL 方法
+URI方法 encodeURI()、encodeURIComponent()、decodeURI()和 decodeURIComponent()取代了 escape()和 unescape()方法，后者在 ECMA-262 第 3 版中就已经废弃了。URI 方法始终是首选方法，因为它们对所有 Unicode 字符进行编码，而原来的方法只能正确编码 ASCII 字符。不要在生产环境中使用 escape()和 unescape()。
+
+ecnodeURI()方法用于对整个 URI 进行编码，比如"www.wrox.com/illegal value.js"。而
+encodeURIComponent()方法用于编码 URI 中单独的组件，比如前面 URL 中的"illegal value.js"。
+这两个方法的主要区别是，encodeURI()不会编码属于 URL 组件的特殊字符，比如冒号、斜杠、问号、
+井号，而 encodeURIComponent()会编码它发现的所有非标准字符。
+
+encodeURI()和 encodeURIComponent()相对的是 decodeURI()和 decodeURIComponent()。
+decodeURI()只对使用 encodeURI()编码过的字符解码。例如，%20 会被替换为空格，但%23 不会被
+替换为井号（#），因为井号不是由 encodeURI()替换的。类似地，decodeURIComponent()解码所有
+被 encodeURIComponent()编码的字符，基本上就是解码所有特殊值。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
