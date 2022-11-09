@@ -466,6 +466,33 @@ Global 对象是 ECMAScript 中最特别的对象，因为代码不会显式地�
 对象为一种兜底对象，它所针对的是不属于任何对象的属性和方法。事实上，不存在全局变量或全局函
 数这种东西。在全局作用域中定义的变量和函数都会变成 Global 对象的属性。包括 isNaN()、isFinite()、parseInt()和 parseFloat()，实际上都是 Global 对象的方法。除了这些，Global 对象上还有另外一些方法。
 
+Global 对象有很多属性，其中一些前面已经提到过了。像 undefined、NaN 和 Infinity 等特殊值都是 Global 对象的属性。此外，所有原生引用类型构造函数，比如 Object 和 Function，也都是 Global 对象的属性。下表列出了所有这些属性。
+
+| 属性 | 说明 |
+| ---  | --- |
+| undefined      | 特殊值 undefined          |
+| NaN            | 特殊值 NaN                |
+| Infinity       | 特殊值 Infinity           |
+| Object         | Object 的构造函数         |
+| Array          | Array 的构造函数          |
+| Function       | Function 的构造函数       |
+| Boolean        | Boolean 的构造函数        |
+| String         | String 的构造函数         |
+| Number         | Number 的构造函数         |
+| Date           | Date 的构造函数           |
+| RegExp         | RegExp 的构造函数         |
+| Symbol         | Symbol 的伪构造函数       |
+| Error          | Error 的构造函数          |
+| EvalError      | EvalError 的构造函数      |
+| RangeError     | RangeError 的构造函数     |
+| ReferenceError | ReferenceError 的构造函数 |
+| SyntaxError    | SyntaxError 的构造函数    |
+| TypeError      | TypeError 的构造函数      |
+| URIError       | URIError 的构造函数       |
+
+
+
+
 
 ### URL 方法
 URI方法 encodeURI()、encodeURIComponent()、decodeURI()和 decodeURIComponent()取代了 escape()和 unescape()方法，后者在 ECMA-262 第 3 版中就已经废弃了。URI 方法始终是首选方法，因为它们对所有 Unicode 字符进行编码，而原来的方法只能正确编码 ASCII 字符。不要在生产环境中使用 escape()和 unescape()。
@@ -480,12 +507,57 @@ decodeURI()只对使用 encodeURI()编码过的字符解码。例如，%20 会�
 替换为井号（#），因为井号不是由 encodeURI()替换的。类似地，decodeURIComponent()解码所有
 被 encodeURIComponent()编码的字符，基本上就是解码所有特殊值。
 
+### eval 方法
 
+当解释器发现 eval()调用时，会将参数解释为实际的 ECMAScript 语句，然后将其插入到该位置。
+通过 eval()执行的代码属于该调用所在上下文，被执行的代码与该上下文拥有相同的作用域链。这意 味着定义在包含上下文中的变量可以在 eval()调用内部被引用。
 
+```js
+let msg = "hello";
+eval("console.log(msg)"); // hello
+```
 
+通过 eval()定义的任何变量和函数都不会被提升，这是因为在解析代码的时候，它们是被包含在一个字符串中的。它们只是在 eval()执行的时候才会被创建。
 
+在严格模式下，在 eval()内部创建的变量和函数无法被外部访问。
 
+### window 对象
 
+虽然ECMA-262没有规定直接访问 Global 对象的方式，但浏览器将 window 对象实现为 Global 对象的代理。因此，所有全局作用域中声明的变量和函数都变成了 window 的属性。
+
+```js
+var color = "red";
+
+function getColor() {
+    console.log(window.color);
+}
+
+window.getColor(); // red
+```
+
+另一种获取 Global 对象的方式是使用如下的代码：
+
+```js
+let global = function() {
+    return this;
+}();
+```
+
+这段代码创建一个立即调用的函数表达式，返回了 this 的值。如前所述，当一个函数在没有明确（通过成为某个对象的方法，或者通过 call()/apply()）指定 this 值的情况下执行时，this 值等于 Global 对象。因此，调用一个简单返回 this 的函数是在任何执行上下文中获取 Global 对象的通用 方式。
+
+## 集合引用类型
+
+### Object
+
+在使用对象字面量表示法定义对象时，并不会实际调用 Object 构造函数。
+
+### Array
+
+除了 Object，Array 应该就是 ECMAScript中最常用的类型了。ECMAScript数组跟其他编程语言的数组有很大区别。跟其他语言中的数组一样，ECMAScript 数组也是一组有序的数据，但跟其他语言 不同的是，数组中每个槽位可以存储任意类型的数据。这意味着可以创建一个数组，它的第一个元素 是字符串，第二个元素是数值，第三个是对象。ECMAScript 数组也是动态大小的，会随着数据添加而 自动增长。
+
+与对象一样，在使用数组字面量表示法创建数组不会调用 Array 构造函数。
+
+使用 instanceof 的问题是假定只有一个全局执行上下文。如果网页里有多个框架，则可能涉及两个不同的全局执行上下文，因此就会有两个不同版本的 Array 构造函数。如果要把数组从一个框架传 给另一个框架，则这个数组的构造函数将有别于在第二个框架内本地创建的数组。为解决这个问题，ECMAScript提供了 Array.isArray()方法。这个方法的目的就是确定一个值是 否为数组，而不用管它是在哪个全局执行上下文中创建的。
 
 
 
