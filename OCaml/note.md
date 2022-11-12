@@ -148,4 +148,107 @@ strs;;
 
 
 
+## Refs
+
+Refs 是 Ocaml 中的一种可变数据结构，实质上就是带有单个 mutable 元素 `contents` 的 Record 类型。
+
+```ocaml
+let x = {contents = 0};;
+(* val x : int ref = {contents = 0} *)
+x.contents <- x.contents + 1;;
+x.contents;;
+- : int = 1
+```
+
+这个 mutable 元素的类型不一定是 int，还可以是其他类型，如 string。
+
+```ocaml
+let x = {contents = "hello"};;
+val x : string ref = {contents = "hello"}
+x.contents;;
+- : string = "hello"
+```
+
+其中 `val x : string ref = {contents = "hello"}` 这一行并不是我们的输入，而是 utop 的输出，在定义完 `let x = {contents = "hello"};;` 这一行之后，utop 自动进行类型推导并将推导结果输出到终端。
+
+要访问 Refs 的内容除了使用 `.contents` 外还可以使用 `!` 符号。
+
+```ocaml
+let x = ref 0;;
+val x : int ref = {contents = 0}
+x := !x + 1;;
+!x;;
+- : int = 1
+x.contents;;
+- : int = 1
+```
+可以看到，使用 `x := !x + 1` 语句成功地让 `x.contents` 自增了 1，`!x` 是 `x.contents` 的语法糖，`:=` 在对 Refs 类型的赋值中等于 `<-`。
+
+## For 循环和 While 循环
+
+```ocaml
+utop # let print_array array =
+           let length = Array.length array in
+           for i = 0 to length-1 do
+               Format.print_string array.(i);
+               Format.print_string "\n";
+           done;;
+utop # print_array [|"a"; "b"; "c"|];;
+a
+b
+c
+```
+
+```ocaml
+utop # let find_first_negative array =
+           let pos = ref 0 in
+               while !pos < Array.length array && array.(!pos) >= 0 do
+                   pos := !pos + 1
+               done;
+           if !pos = Array.length array then None else Some !pos;;
+
+utop # find_first_negative [|1;2;-1;3|];;
+- : int option = Some 2
+```
+
+这两种循环看代码都很好理解，基本和命令式语言中差不多。
+
+
+## 使用 dune 为 OCaml 代码生成可执行文件
+
+dune 是 OCaml 的项目管理工具，假设我们在目录 example 下。想用 dune 为模块 `test.ml` 生成一个可执行文件，那么需要按照如下步骤。
+
+### 1 创建一个 `dune-project` 文件
+
+```ocaml
+(lang dune 2.9)
+(name example)
+```
+
+这两行分别表示使用的 dune 版本和项目名字。
+
+### 2 创建一个 `dune` 文件
+
+```ocaml
+(executable
+  (name test)
+  (libraries base stdio))
+```
+
+第一行 `executable` 表示要还生成一个可执行文件，第二行表示源文件名，第三行是源文件中用到的模块。
+
+### 3 执行
+
+在终端中执行如下命令，构建一个可执行文件。
+
+```bash
+dune build test.exe
+```
+
+需要注意的是可执行文件 `*.exe` 的前缀 `*` 需要和 `dune` 文件中定义的 `(name *)` 一致，在这个例子中都是 `test`。
+
+
+
+
+
 
