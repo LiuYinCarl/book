@@ -247,7 +247,35 @@ dune build test.exe
 
 需要注意的是可执行文件 `*.exe` 的前缀 `*` 需要和 `dune` 文件中定义的 `(name *)` 一致，在这个例子中都是 `test`。
 
+## OCaml 中的变量
 
+定义变量的时候，首字母需要为小写字母或者下划线。
+
+OCaml 一个比较有意思的点是虽然它是强类型语言，但是变量并非与类型绑定，变量可以以其他类型重定义，如果你定义了一个 string 类型的变量 x, 可以立刻在下一行重新定义一个 int 类型的变量 x。
+
+```ocaml
+let a = "hello";;
+val a : string = "hello"
+let a = 10;;
+val a : int = 10
+ a;;
+- : int = 10
+```
+
+如果在多层的 let 绑定中出现了重复定义，那么内层的表达式中使用的变量是距离它最近的外层中的 let 绑定的定义。
+
+```ocaml
+let area_of_ring inner_radius outer_radius =
+           let pi = Float.pi in
+           let area_of_circle r = pi *. r *. r in
+           let pi = 0. in
+           area_of_circle outer_radius -. area_of_circle inner_radius;;
+Line 4, characters 15-17:
+Warning 26 [unused-var]: unused variable pi.
+val area_of_ring : float -> float -> float = <fun>
+```
+
+这个例子中 `let area_of_circle r = pi *. r *. r` 中使用的 `pi` 的定义就是最外层的 `let pi = Float.pi` 而不是内层的 `let pi = 0.`。
 
 
 
