@@ -395,6 +395,222 @@ c
 `|>` 被称为 reverse application operator(反向应用操作符)，与之相对的，还有一个被称为 application operator(应用操作符) 的 `@@`，`@@` 的作用是简化多层括号表达式的写法，`f (g (h x))` 可以写为 `f @@ g @@ h x`，从代码中可以看出，`@@` 自然是右结合(先计算操作符右边的表达式)性质。
 
 
+## 使用 function 关键字定义函数
+
+定义一个函数，除了匿名函数写法 `(fun x -> x + 1)`，简写法 (let add_1 x = x + 1) 之外，还可以使用 `function` 关键字。
+
+```ocaml
+let some_or_zero = function
+    | Some x -> x
+    | None -> 0;;
+val some_or_zero : int option -> int = <fun>
+
+List.map ~f:some_or_zero [Some 3; None; Some 4];;
+- : int list = [3; 0; 4]
+```
+
+等价于
+
+```ocaml
+let some_or_zero num_opt =
+  match num_opt with
+  | Some x -> x
+  | None -> 0;;
+val some_or_zero : int option -> int = <fun>
+```
+
+使用 `function` 也能定义一个参数以上的函数
+
+```ocaml
+let some_or_default default = function
+  | Some x -> x
+  | None -> default;;
+val some_or_default : 'a -> 'a option -> 'a = <fun>
+
+List.map ~f:(some_or_default 100) [Some 3; None; Some 4];;
+- : int list = [3; 100; 4]
+```
+
+## 标签参数
+
+OCaml 中除了位置参数以外，还有标签参数。在调用函数的时候，标签参数不需要按照函数定义中的顺序书写，只需要在调用时使用 `~` 前缀来表明其是一个标签参数。
+
+```ocaml
+let ratio ~num ~denom = Float.of_int num /. Float.of_int denom;;
+val ratio : num:int -> denom:int -> float = <fun>
+
+ratio ~denom:10 ~num:3;;
+- : float = 0.3
+```
+
+如果调用时使用的形参名字和函数定义时的形参名字一致，那么调用时可以省略 `:` 及之后的实参。
+
+```ocaml
+let num = 3 in
+let denom = 4 in
+ratio ~num ~denom;;
+- : float = 0.75
+```
+
+## 可选参数
+
+OCaml 中的可选参数和标签参数类似，不需要按照顺序传递，只需要在使用时使用 `~` 前缀来表明是一个可选参数。可选参数都是 `Some` 类型，当没有传递可选参数的时候，可选参数的值默认为 None。
+
+```ocaml
+let concat ?sep x y =
+  let sep = match sep with
+            | None -> "" 
+            | Some s -> s in
+    x ^ sep ^ y;;
+val concat : ?sep:string -> string -> string -> string = <fun>
+concat "foo" "bar";;
+- : string = "foobar"
+concat ~sep:":" "foo" "bar";;
+- : string = "foo:bar"
+```
+
+为可选参数提供默认值的写法如下
+
+```ocaml
+let concat ?(sep="") x y = x ^ sep ^ y;;
+val concat : ?sep:string -> string -> string -> string = <fun>
+```
+
+函数调用者传递默认参数的时候对于自己传递的是一个 `Some` 类型的参数是不明确的(因为使用的是和标签参数一样的前缀 `~`)。如果想要强调传递的是 `Some` 类型的参数，可以用下面这种 `?` 前缀的写法。
+
+```ocaml
+concat ~sep:":" "foo" "bar" (* provide the optional argument *);;
+- : string = "foo:bar"
+concat ?sep:(Some ":") "foo" "bar" (* pass an explicit [Some] *);;
+- : string = "foo:bar"
+```
+
+## 标签参数推断和可选参数
+
+标记参数和可选参数的一个微妙方面是它们是如何由类型系统推断出来的。考虑下面的例子，用于计算两个实变量函数的数值导数。这个函数有一个自变量 delta，它决定了计算导数的大小; x 和 y 值，它决定了计算导数的时间点; f 函数，它的导数正在计算中。函数 f 本身有两个带标签的参数 x 和 y。注意你可以使用撇号作为变量名的一部分，所以 x’和 y’只是普通变量。
+
+```ocaml
+let numeric_deriv ~delta ~x ~y ~f =
+    let x' = x +. delta in
+    let y' = y +. delta in
+    let base = f ~x ~y in
+    let dx = (f ~x:x' ~y -. base) /. delta in
+    let dy = (f ~x ~y:y' -. base) /. delta in
+    (dx, dy);;
+val numeric_deriv :
+  delta:float -> x:float -> y:float -> f:(x:float -> y:float -> float) -> float * float = <fun>
+```
+
+原则上，如何选择 f 的参数顺序并不明显。因为标签参数可以按任意顺序传递，所以类型签名可以是 `y: float-> x: float-> float` 或者 `x: float-> y: float-> float`。
+
+更糟糕的是，如果 f 使用可选参数而不是标签参数，那么 f 将是完全一致的，这可能导致 numeric _ deriv 的类型签名如下所示。
+
+```ocaml
+val numeric_deriv :
+  delta:float ->
+  x:float -> y:float -> f:(?x:float -> y:float -> float) -> float * float
+```
+
+由于有多种合理的类型可供选择，OCaml 需要一些启发式方法来在它们之间进行选择。编译器使用的启发式方法是优先认为是标签参数而不是可选参数，并以源代码中出现的参数顺序为准。
 
 
+```ocaml
+let numeric_deriv ~delta ~x ~y ~f =
+    let x' = x +. delta in
+    let y' = y +. delta in
+    let base = f ~x ~y in
+    let dx = (f ~y ~x:x' -. base) /. delta in
+    let dy = (f ~x ~y:y' -. base) /. delta in
+    (dx, dy);;
+Error: This function is applied to arguments
+       in an order different from other calls.
+       This is only allowed when the real type is known.
+```
 
+出现这个编译错误的原因就是我们在调用 f 函数的时候没有按同一个顺序写标签参数，导致编译器无法做出类型推断。根据错误消息的建议，如果我们提供显式的类型信息，我们可以让 OCaml 接受 f 与不同的参数顺序一起使用。因此，由于 f 上的类型注释，下面的代码编译没有错误。
+
+```ocaml
+let numeric_deriv ~delta ~x ~y ~(f: x:float -> y:float -> float) =
+  let x' = x +. delta in
+  let y' = y +. delta in
+  let base = f ~x ~y in
+  let dx = (f ~y ~x:x' -. base) /. delta in
+  let dy = (f ~x ~y:y' -. base) /. delta in
+  (dx,dy);;
+val numeric_deriv :
+  delta:float -> x:float -> y:float -> f:(x:float -> y:float -> float) -> float * float = <fun>
+```
+
+## 可选参数和部分应用函数
+
+在存在部分应用程序的情况下，可选参数可能很难考虑。当然，我们可以部分地应用可选参数本身。
+
+```ocaml
+let colon_concat = concat ~sep:":";;
+val colon_concat : string -> string -> string = <fun>
+colon_concat "a" "b";;
+- : string = "a:b"
+```
+
+但是如果我们只部分地应用第一个参数会发生什么呢？
+
+```ocaml
+let prepend_pound = concat "# ";;
+val prepend_pound : string -> string = <fun>
+prepend_pound "a BASH comment";;
+- : string = "# a BASH comment"
+```
+
+可选参数 `?Sep` 现在已经消失或者被删除了。事实上，如果我们现在尝试传递那个可选参数将导致一个编译错误。
+
+```ocaml
+prepend_pound "a BASH comment" ~sep:":";;
+Line 1, characters 1-14:
+Error: This function has type Base.String.t -> Base.String.t
+       It is applied to too many arguments; maybe you forgot a `;'.
+```
+
+那么 OCaml 什么时候决定丢弃一个可选参数呢？
+
+规则是: 在这个可选参数之后定义的第一个位置参数(即既不带标记也不带可选参数)被传入的时候，这个可选参数会被丢弃。这就解释了 `prepend_ound` 函数的行为。但是如果我们在第二个参数位置才定义了 concat 的可选参数会如何呢:
+
+```ocaml
+let concat x ?(sep="") y = x ^ sep ^ y;;
+val concat : string -> ?sep:string -> string -> string = <fun>
+```
+
+现在部分应用第一个参数不会导致可选参数被丢弃。
+
+```ocaml
+let prepend_pound = concat "# ";;
+val prepend_pound : ?sep:string -> string -> string = <fun>
+prepend_pound "a BASH comment";;
+- : string = "# a BASH comment"
+prepend_pound "a BASH comment" ~sep:"--- ";;
+- : string = "# --- a BASH comment"
+```
+
+然而，如果一个函数在调用时提供了所有参数，那么直到所有参数都传入之后，才会考虑删除可选参数。这保留了我们在参数列表的任何位置传递可选参数的能力。因此，我们可以写。
+
+```ocaml
+concat "a" "b" ~sep:"=";;
+- : string = "a=b"
+```
+
+如果在定义函数的时候，可选参数之后没有定义任何一个位置参数，那么编译器有一个警告。
+
+```ocaml
+let concat x y ?(sep="") = x ^ sep ^ y;;
+Line 1, characters 18-24:
+Warning 16 [unerasable-optional-argument]: this optional argument cannot be erased.
+val concat : string -> string -> ?sep:string -> string = <fun>
+```
+
+在这种情况下，当我们提供两个位置参数时，`sep` 参数不会删除，函数表达式不会进行计算，而是返回一个希望提供 `sep` 参数的部分应用函数。
+
+```ocaml
+concat "a" "b";;
+- : ?sep:string -> string = <fun>
+```
+
+**所以，在定义含有可选参数的函数时，最好不要将可选参数放在最后。**
