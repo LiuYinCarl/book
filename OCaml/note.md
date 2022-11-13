@@ -278,5 +278,123 @@ val area_of_ring : float -> float -> float = <fun>
 这个例子中 `let area_of_circle r = pi *. r *. r` 中使用的 `pi` 的定义就是最外层的 `let pi = Float.pi` 而不是内层的 `let pi = 0.`。
 
 
+## 匿名函数
+
+OCaml 中的匿名函数定义方法如下。
+
+```ocaml
+(fun x -> x + 1)
+```
+
+等价于
+
+```ocaml
+let add_one x = x + 1
+```
+
+## Curried 函数
+
+OCaml 中的一个多参函数如下
+
+```ocaml
+let abs_diff x y = abs (x - y);;
+```
+
+它的类型是
+
+```ocaml
+val abs_diff : int -> int -> int = <fun>
+```
+
+这个函数等价于
+
+```ocaml
+let abs_diff =
+(fun x -> (fun y -> abs (x - y)));;
+val abs_diff : int -> int -> int = <fun>
+```
+
+下面这种形式的函数称为 Curried 函数，理解 Curried 函数的关键在于类型签名，需要知道 OCaml 中函数的类型签名是右结合的。
+
+```ocaml
+int -> int -> int
+```
+
+等价于
+
+```ocaml
+int -> (int -> int)
+```
+
+Curried 函数的作用在于可以构造 partial application (部分应用的函数)，例如下面的 `dist_from_3`。
+
+```ocaml
+let dist_from_3 = abs_diff 3
+val dist_from_3 : int -> int = <fun>
+dist_from_3 8;;
+- : int = 5
+```
+
+部分应用的函数就是通过给一个多参函数提供部分函数而构造出一个新函数。
+
+## 递归函数
+
+一个在定义中引用了自身的函数被称为递归函数。例如
+
+```ocaml
+let rec find_first_repeat list =
+           match list with
+           | [] | [_] -> None
+           | x :: y :: tl ->
+               if x = y then Some x else find_first_repeat (y::tl);;
+val find_first_repeat : 'a list -> 'a option = <fun>
+
+find_first_repeat [1;2;3;3];;
+- : int option = Some 3
+```
+
+使用 `and` 关键字定义相互递归的函数，OCaml 定义这个语法是出于技术原因，当前的类型推断算法需要程序员标明哪些函数是相互递归调用的。
+
+```ocaml
+let rec is_even x =
+           if x = 0 then true else is_odd (x - 1)
+and is_odd x =
+    if x = 0 then false else is_even (x -1);;
+val is_even : int -> bool = <fun>
+val is_odd : int -> bool = <fun>
+
+List.map ~f:is_even [0;1;2;3;4;5];;
+- : bool list = [true; false; true; false; true; false]
+```
+
+## 管道操作符
+
+OCaml 标准库中的管道操作符定义如下
+
+```ocaml
+let (|>) x f = f x;;
+val ( |> ) : 'a -> ('a -> 'b) -> 'b = <fun>
+```
+
+它的作用和 Shell 中的管道操作符 `|` 类似。
+
+```ocaml
+let str = "a;b;c";;
+val str : string = "a;b;c"
+
+String.split ~on:';' str
+|> List.iter ~f:print_endline;;
+a
+b
+c
+- : unit = ()
+```
+
+需要注意的是，`|>` 操作符的左结合(先计算操作符左边的表达式)性质才使得它能够实现管道效果，如果它是右结合性质的话，那管道功能是无法实现的。
+
+`|>` 被称为 reverse application operator(反向应用操作符)，与之相对的，还有一个被称为 application operator(应用操作符) 的 `@@`，`@@` 的作用是简化多层括号表达式的写法，`f (g (h x))` 可以写为 `f @@ g @@ h x`，从代码中可以看出，`@@` 自然是右结合(先计算操作符右边的表达式)性质。
+
+
+
 
 
