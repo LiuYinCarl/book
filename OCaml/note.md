@@ -614,3 +614,165 @@ concat "a" "b";;
 ```
 
 **所以，在定义含有可选参数的函数时，最好不要将可选参数放在最后。**
+
+## 使用 dune 管理项目(TODO: 补充内容)
+
+使用 dune 管理项目需要两个配置文件，`dune` 和 `dune-project`，`dune-project` 文件包含项目的基本配置，最简单的 `dune-project` 文件只包含项目要求的 `dune` 软件的版本。
+
+```dune
+(lang dune 3.0)
+```
+
+`dune` 文件则包含编译信息，包括要编译的文件及文件使用的库。一个单文件并且使用了 base, stdio 库的项目的 `dune` 配置如下。
+
+```dune
+(executable
+  (name test)
+  (libraries base stdio)
+)
+```
+
+## 模块 Module
+
+OCaml 中每个文件称为一个 Module。
+
+基本的模块定义语法如下
+
+```ocaml
+module <name> : <signature> = <implementation>
+```
+
+使用 open 打开模块的时候一般不建议全局打开，而是通过 local open, 只在使用到的地方打开，例如
+
+```ocaml
+open Base;;
+let average x y =
+    Int64.((x + y) / of_int 2);;
+val average : int64 -> int64 -> int64 = <fun>
+```
+
+或者
+
+```ocaml
+open Base;;
+let average x y =
+    let open Int64 in
+    (x + y) / of_int 2;;
+val average : int64 -> int64 -> int64 = <fun>
+```
+
+还可以使用模块别名来减少模块输入的字符数
+
+```ocaml
+open Base;;
+
+let average x y =
+    let module I = Int64 in
+    I.((x + y) / of_int 2);;
+val average : int64 -> int64 -> int64 = <fun>
+```
+
+## Include Modules
+
+open Module 是将模块的内容添加到标识符搜索空间，而 include Module 则是向 Module 中添加新的标识符。
+
+```ocaml
+module Interval = struct
+    type t = | Interval of int * int
+             | Empty
+
+    let create low high =
+        if high < low then Empty else Interval (low,high)
+end;;
+module Interval :
+  sig type t = Interval of int * int | Empty val create : int -> int -> t end
+
+
+module Extended_interval = struct
+    include Interval
+    let contains t x =
+        match t with
+        | Empty -> false
+        | Interval (low, high) -> x >= low && x <= high
+end;;
+module Extended_interval :
+  sig
+    type t = Interval.t = Interval of int * int | Empty
+    val create : int -> int -> t
+    val contains : t -> int -> bool
+  end
+```
+
+如果使用了 include 的话，那么在编写模块类型文件 `.mli` 的时候，也需要进行处理。
+
+```ocaml
+(* extend_option.ml *)
+
+open Base
+
+include Option
+
+let apply f_opt x =
+  match f_opt with
+  | None -> None
+  | Some f -> Some (f x)
+```
+
+```ocaml
+(* extend_option.mli *)
+
+open Base
+
+include module type of Option
+
+val apply : ('a -> 'b) t -> 'a -> 'b t
+```
+
+另外，如果想要重新定义原模块中的同名函数函数的话，可以先 include 原模块，然后再写一个同名函数对原模块中的函数进行覆盖。
+
+如果像要将对原函数的模块拓展都集中到一处进行处理的话，以上面我们拓展的 Option 模块为例，可以定义一个新的例如名字为 `import.ml` 的文件，然后在这个文件中写入如下内容。
+
+```ocaml
+(* 导入模块的时候，模块名首字母需要大写 *)
+module Option = Extend_option
+```
+
+在使用 Extend_option 模块的时候，调用方法如下。
+
+```ocaml
+open Import
+
+(* other code *)
+```
+
+## 使用模块时候的常见错误
+
+**Type Mismatches**
+
+常见原因是 `.mli` 文件中的函数签名 `.ml` 文件中的函数定义不匹配。
+
+**Missing Definitions**
+
+常见原因是只在 `.mli` 文件中写了签名，没有在 `.ml` 文件中写定义。
+
+**Type Definition Mismatches**
+
+常见原因是 `.mli` 文件中的类型签名顺序和 `.ml` 文件中的类型定义中字段顺序不匹配。
+
+```ocaml
+(* .ml 文件*)
+
+type median =
+  | Median of string
+  | Before_and_after of string * string
+
+(* .mli 文件 *)
+type median =
+  | Before_and_after of string * string
+  | Median of string
+```
+
+**Cyclic Dependencies**
+
+循环依赖，和其他语言类似，OCaml 特殊情况下允许模块级的循环依赖，但不是一个好的方案。
+
