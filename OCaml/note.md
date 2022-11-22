@@ -776,3 +776,83 @@ type median =
 
 循环依赖，和其他语言类似，OCaml 特殊情况下允许模块级的循环依赖，但不是一个好的方案。
 
+## Record
+
+Record 是 OCaml 中可以包含不同类型的成员的数据结构，与 C 语言中的 Struct 类似。Record 的定义语法如下，每个 field 的首字母需要小写。
+
+```ocaml
+type <record-name> =
+    { <field> : <type>;
+      <field> : <type>;
+      ...
+    }
+```
+
+通过一个例子来看 Record 的用法。
+
+```ocaml
+open Core;;
+
+type service_info =
+  { service_name : string;
+    port         : int;
+    protocol     : string;
+  };;
+type service_info = { service_name : string; port : int; protocol : string; }
+
+#require "re";;
+let service_info_of_string line =
+  let matches =
+    let pat = "([a-zA-Z]+)[ \t]+([0-9]+)/([a-zA-Z]+)" in
+    Re.exec (Re.Posix.compile_pat pat) line
+  in
+  { service_name = Re.Group.get matches 1;
+    port = Int.of_string (Re.Group.get matches 2);
+    protocol = Re.Group.get matches 3;
+  }
+;;
+val service_info_of_string : string -> service_info = <fun>
+
+let ssh = service_info_of_string "ssh 22/udp";;
+val ssh : service_info = {service_name = "ssh"; port = 22; protocol = "udp"}
+
+ssh.port;;
+- : int = 22
+```
+
+其中 `service_info_of_string` 函数根据 返回值中的成员自动推断返回类型为 `service_info`。如果需要访问 Record 对象的成员，使用 `record.field` 语法即可。
+
+定义一个多态 Record 类型。
+
+```ocaml
+type 'a with_line_num = { item: 'a; line_num: int }
+```
+
+在实际代码中使用多态 Record
+
+```ocaml
+let parse_lines parse file_contents =
+    let lines = String.split ~on:'\n' file_contents in
+    List.mapi lines ~f:(fun line_num line ->
+        { item = parse line;
+          line_num = line_num + 1;
+        });;
+val parse_lines : (string -> 'a) -> string -> 'a with_line_num list = <fun>
+
+parse_lines service_info_of_string
+  "rtmp              1/ddp     # Routing Table Maintenance Protocol
+   tcpmux            1/udp     # TCP Port Service Multiplexer
+   tcpmux            1/tcp     # TCP Port Service Multiplexer";;
+- : service_info with_line_num list =
+[{item = {service_name = "rtmp"; port = 1; protocol = "ddp"}; line_num = 1};
+ {item = {service_name = "tcpmux"; port = 1; protocol = "udp"}; line_num = 2};
+ {item = {service_name = "tcpmux"; port = 1; protocol = "tcp"}; line_num = 3}]
+
+parse_lines Int.of_string "1\n10\n100\n1000";;
+- : int with_line_num list =
+[{item = 1; line_num = 1}; {item = 10; line_num = 2};
+ {item = 100; line_num = 3}; {item = 1000; line_num = 4}]
+```
+
+在上面的例子中，根据 `parse_lines` 函数给出的不同参数，`parse_lines` 函数返回的类型也不同，这说明 `parse_lines` 也是一个多态函数。
+
