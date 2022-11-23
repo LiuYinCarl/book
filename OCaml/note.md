@@ -1,4 +1,4 @@
-# Real World OCaml 2ed note
+# Real World OCaml 2nd note
 
 [online ebook](https://dev.realworldocaml.org/)
 
@@ -1016,5 +1016,5 @@ type ta =
 type ta = { f1 : string; f2 : string; f3 : string; }
 ```
 
-再重新编译代码的话，`functional_update` 函数不会包i错，但是它的功能已经不正确了，因为它创建的新的 Recoed 对象的 f3 字段是复制的 ta1 的而不是 ta2 的。
+再重新编译代码的话，`functional_update` 函数不会报错，但是它的功能已经不正确了，因为它创建的新的 Recoed 对象的 f3 字段是复制的 ta1 的而不是 ta2 的。
 
