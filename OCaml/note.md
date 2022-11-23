@@ -856,3 +856,165 @@ parse_lines Int.of_string "1\n10\n100\n1000";;
 
 在上面的例子中，根据 `parse_lines` 函数给出的不同参数，`parse_lines` 函数返回的类型也不同，这说明 `parse_lines` 也是一个多态函数。
 
+前面提到了，返回值构建的 Record 的字段如果和已有的 Record 定义相符，那么 OCaml 会自动将返回值推断为这个已定义的 Record 类型。那么这会带来一个问题，如果多个 Record 定义中存在相同的 field，那么类型推断还会生效吗？
+
+```ocaml
+type ta = {
+  f1 : string;
+  f2 : string;
+};;
+type ta = { f1 : string; f2 : string; }
+
+type tb = {
+  f1: string;
+  f3: string;
+};;
+type tb = { f1 : string; f3 : string; }
+```
+
+如果定义一个获取记录的 f1 field 的函数如下
+
+```ocaml
+let get_f1 t = t.f1;;
+val get_f1 : tb -> string = <fun>
+```
+
+ocaml 默认使用最近的一个符合要求的 Record 类型作为函数参数 t 的类型，那么如果要获取 Rrcord ta 的 f1 字段要怎么写呢？
+
+```ocaml
+let get_f1 (t:ta) = t.f1;;
+val get_f1 : ta -> string = <fun>
+```
+
+如上所示，需要使用类型注释的方式，注明参数 t 的类型为 ta。
+
+另外一种方式是将 ta 和 tb 放置到不同的 module 中，使用的时候通过 module 来推断使用的 Record 类型。
+
+```ocaml
+module Ta = struct
+  type t = {
+    f1: string;
+    f2: string;
+  }
+end;;
+module Ta : sig type t = { f1 : string; f2 : string; } end
+
+module Tb = struct
+  type t = {
+    f1: string;
+    f3: string;
+  }
+end;;
+module Tb : sig type t = { f1 : string; f3 : string; } end
+
+let create ~a ~b =
+  { Ta.f1 = a; f2 = b };;
+val create : a:string -> b:string -> Ta.t = <fun>
+```
+
+使用模块中的类型时，只要在一个 field 上注明 module name 就可以，其他的 field 可以省略 module name，例如这里的 Ta.f1 和 f2。
+
+或者使用类型注释
+
+```ocaml
+let create ~a ~b : Tb.t =
+  { f1 = a; f3 = b };;
+val create : a:string -> b:string -> Tb.t = <fun>
+```
+
+除了在构造的时候可以这样子写，在模式匹配的时候也可以使用。
+
+```ocaml
+let test_f1 {Ta.f1; _} =
+  String.uppercase f1;;
+val test_f1 : Ta.t -> string = <fun>
+
+let test_f1 t = t.Tb.f1;;
+val test_f1 : Tb.t -> string = <fun>
+```
+
+其中 `t.Tb.f1` 可能看起来比较奇怪，在 OCaml 中，`.` 有两种使用用法，第一种用法是访问模块的内容，第二种用法是访问 Record field，又由于 Record 类型都是大写的，例如这里的 `Tb`，所以 `t.Tb` 一定是访问模块的内容，所以这两种用法在这里不会产生歧义。
+
+对于使用模块包含类型的方式，可以使用类型注释来简化代码
+
+```ocaml
+let test_f1 ({ f1; _} : Ta.t) = String.uppercase f1;;
+val test_f1 : Ta.t -> string = <fun>
+
+let test_f1 ({ f1; _} : Tb.t) = String.uppercase f1;;
+val test_f1 : Tb.t -> string = <fun>
+```
+
+类型注释在这里效果不是很明显，但是如果 Record 中含有很多的 field 的话，那么简化代码带来的收益还是比较可观的。
+
+### functional update 语法
+
+这个语法主要用来对一个 Record 进行部分更新，产生一个新的 Record 对象，并且不修改旧的 Record 对象。在原来的做法中，如果要实现这个功能，需要复制旧 Record 对象的大部分 field 并且只修改我们想修改的 field，做法如下。
+
+```ocaml
+type ta =
+{ f1: string;
+  f2: string
+};;
+type ta = { f1 : string; f2 : string; }
+
+let update_ta t b =
+  { f1 = t.f1;
+    f2 = b;
+};;
+val update_ta : ta -> string -> ta = <fun>
+
+let old = {f1 = "hello"; f2 = "hi"};;
+val old : ta = {f1 = "hello"; f2 = "hi"}
+
+update_ta old "good";;
+- : ta = {f1 = "hello"; f2 = "good"}
+
+old;;
+- : ta = {f1 = "hello"; f2 = "hi"}
+```
+
+可以看到，为了只修改 f2 我们还需要复制旧 Record 的 f1 字段，使用 functional update 语法可以帮助我们去掉这一步。
+
+```ocaml
+let functional_update t b =
+  { t with f2 = b };;
+val functional_update : ta -> string -> ta = <fun>
+
+let old = {f1 = "hello"; f2 = "hi"};;
+val old : ta = {f1 = "hello"; f2 = "hi"}
+
+functional_update old "good";;
+- : ta = {f1 = "hello"; f2 = "good"}
+
+old;;
+- : ta = {f1 = "hello"; f2 = "hi"}
+```
+
+functional update 虽然可以简化代码，但是也有坏处，那就是如果你之后修改了原始的 Record 定义的话，那么 OCaml 编译器不会提示你同步修改使用了 functional update 的 Record 字段，这样子就可能造成 functional update 的功能与预期不符合。例如下面的例子。
+
+```ocaml
+type ta =
+{ f1: string;
+  f2: string;
+};;
+type ta = { f1 : string; f2 : string; }
+
+let functional_update ta1 ta2 =
+ { ta1 with f2 = ta2.f2; };;
+val functional_update : ta -> ta -> ta = <fun>
+```
+
+`functional_update` 函数的功能是以 ta1 为基础，将 ta2 中除 f1 字段以外的功能复制到一个新的 Record 对象中。假设之后修改了 Record ta 的定义，增加了 field f3。
+
+```ocaml
+type ta =
+{ f1: string;
+  f2: string;
+  f3: string;
+};;
+type ta = { f1 : string; f2 : string; f3 : string; }
+```
+
+再重新编译代码的话，`functional_update` 函数不会包i错，但是它的功能已经不正确了，因为它创建的新的 Recoed 对象的 f3 字段是复制的 ta1 的而不是 ta2 的。
+
