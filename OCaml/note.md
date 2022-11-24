@@ -1018,3 +1018,97 @@ type ta = { f1 : string; f2 : string; f3 : string; }
 
 再重新编译代码的话，`functional_update` 函数不会报错，但是它的功能已经不正确了，因为它创建的新的 Recoed 对象的 f3 字段是复制的 ta1 的而不是 ta2 的。
 
+### Record 中的 mutable fields
+
+默认情况下，Record 是不可变的，但是可以通过 `mutable` 关键字定义可变的 Record field。
+
+```ocaml
+type ta =
+{ f1: string;
+  mutable f2: string;
+};;
+type ta = { f1 : string; mutable f2 : string; }
+
+let copy_f2 ta1 ta2 =
+  ta1.f2 <- ta2.f2;;
+val copy_f2 : ta -> ta -> unit = <fun>
+
+let ta1 = {f1 = "hello"; f2 = "hi"};;
+val ta1 : ta = {f1 = "hello"; f2 = "hi"}
+
+let ta2 = {f1 = "book"; f2 = "pen"};;
+val ta2 : ta = {f1 = "book"; f2 = "pen"}
+
+copy_f2 ta1 ta2;;
+- : unit = ()
+
+ta1;;
+- : ta = {f1 = "hello"; f2 = "pen"}
+
+ta2;;
+- : ta = {f1 = "book"; f2 = "pen"}
+```
+
+`<-` 操作符被用来设置 Record 的 mutable field，在上面的例子中，调用函数 `copy_f2` 成功地将 `ta1` 的 `f2` 字段从 `"hi"` 修改为了 `"pen"`。
+
+### First-Class Fields
+
+TODO: 不是很理解
+
+## Variants
+
+定义可变类型的语法如下，其中 `Tag` 的首字母需要大写。
+
+```ocaml
+type <variant> =
+  | <Tag> [ of <type> [* <type>]... ]
+  | <Tag> [ of <type> [* <type>]... ]
+  | ...
+``
+
+例如定义 8 种基本颜色
+
+```ocaml
+type basic_color =
+  | Black | Red | Green | Yellow | Blue | Magenta | Cyan | White
+```
+
+负载一点的 Variants 用法直接看书中提供的表示终端下 256 色的例子。
+
+```ocaml
+open Base
+open Stdio
+
+type basic_color =
+  | Black | Red | Green | Yellow | Blue | Magenta | Cyan | White
+
+let basic_color_to_int = function
+  | Black -> 0 | Red -> 1 | Green -> 2 | Yellow -> 3
+  | Blue -> 4 | Magenta -> 5 | Cyan -> 6 | White -> 7
+
+let color_by_number number text =
+  Printf.sprintf "\027[38;5;%dm%s\027[0m" number text
+
+type weight = Regular | Bold
+
+type color =
+  | Basic of basic_color * weight
+  | RGB   of int * int * int
+  | Gray  of int
+
+let color_to_int = function
+  | Basic (basic_color, weight) ->
+    let base = match weight with Bold -> 8 | Regular -> 0 in
+    base + basic_color_to_int basic_color
+  | RGB (r, g, b) -> 16 + b + g * 6 + r * 36
+  | Gray i -> 232 + i
+
+let color_print color s =
+  print_string (color_by_number (color_to_int color) s)
+
+(* test *)
+color_print (Basic (Red, Bold)) "A bold red"
+
+color_print (Gray 4) "A muted gray"
+```
+
