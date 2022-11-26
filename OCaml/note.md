@@ -1112,3 +1112,13 @@ color_print (Basic (Red, Bold)) "A bold red"
 color_print (Gray 4) "A muted gray"
 ```
 
+### Record type and Variants
+
+关于 Record type 和 Variants 的关系，书中有一句话形容的特别好
+
+> More generally, you can think of record types as conjunctions. Variants, on the other hand, are disjunctions, letting you represent multiple possibilities.
+
+简单来说，Record type 像合取，Variants 像析取。
+
+
+
