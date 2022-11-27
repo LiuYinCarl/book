@@ -71,6 +71,41 @@ The `#require` statement is not a statement at all and is **not a part of OCaml 
 
 The `#use` directive is used to load and evaluate a script. For example `#use "topfind"` will load and evaluate the topfind script from the OCaml standard library folder. This script will register the require directive. There are also `#load` and `#load_rec` directives, that work on a more fine-granular level, rather than packages -- these directives are intendend to load libraries.
 
+## 如何在 utop 中加载一个源代码模块
+
+[Loading a module with dependencies in utop](https://stackoverflow.com/questions/46916099/loading-a-module-with-dependencies-in-utop)
+
+假设有两个模块 m1 和 m2, 并且 m2 依赖 m1。那么：
+
+如果要在 utop 中加载模块 m1, 那么使用如下的命令
+
+```ocaml
+#use "m1.ml";;
+```
+
+如果要在 utop 中加载模块 m2, 那么需要先编译 m1, 然后再在 utop 中加载 m1 和 m2
+
+```bash
+ocamlc -c m1.ml # 编译出 m1.cmo
+```
+
+```ocaml
+#load "m1.cmo";;
+#use "m2.ml";;
+```
+
+如果 m1 中使用了 base 或者 core 包之类的包的话，编译的时候需要写参数进行说明，不然会编译失败，如果使用了多个包，需要使用多个 `-package` 参数，例如 `-package base -package core`。
+
+```bash
+ocamlfind ocamlc -package core -c m1.ml
+```
+
+```ocaml
+#load "m1.cmo";;
+#use "m2.ml";;
+```
+
+
 ## OCaml 的多态函数
 
 下面的函数就是 OCaml 中的一个多态函数。
