@@ -1155,5 +1155,68 @@ color_print (Gray 4) "A muted gray"
 
 简单来说，Record type 像合取，Variants 像析取。
 
+### Polymorphic Variants
+
+Polymorphic Variants 使用反引号开头。
+
+```ocaml
+let three = `Int 3;;
+val three : [> `Int of int ] = `Int 3
+
+let four = `Float 4.;;
+val four : [> `Float of float ] = `Float 4.
+
+let is_positive = function
+  | `Int x -> x > 0
+  | `Float x -> Float.(x > 0.);;
+val is_positive : [< `Float of float | `Int of int ] -> bool = <fun>
+```
+
+多态类型中需要注意的是类型标记中的 `<` 和 `>`，其中 `<` 表示 “这些标记或者更少”，`>` 表示 “这些标记或更多”。可以把 `<` 和 `>` 标志当作相应标记的上界和下界。如果同样的一组标记既是上界又是下界，就得到了一个明确的多态变体类型，没有 `<` 和 `>` 标志。
+
+```ocaml
+let exact = List.filter ~f:is_positive [three; four];;
+val exact : [ `Float of float | `Int of int ] list = [`Int 3; `Float 4.]
+```
+
+还可以创建有不同上界和下界的多态变体类型，这可能有些奇怪。下面例子中的 `Ok` 和 `Error` 来自 Core 库中的 `Result.t` 类型。
+
+```ocaml
+let is_positive = function
+  | `Int x -> Ok (x > 0)
+  | `Float x -> Ok Float.O.(x > 0.)
+  | `Not_a_number -> Error "not a number";;
+val is_positive : [< `Float of float | `Int of int | `Not_a_number ] -> (bool, string) result = <fun>
+
+List.filter [three; four] ~f:(fun x ->
+match is_positive x with Error _ -> false | Ok b -> b);;
+- : [< `Float of float | `Int of int | `Not_a_number > `Float `Int ] list =
+[`Int 3; `Float 4.]
+```
+
+这个例子中，推断的类型指出，标记不能超过 `` `Float``, `` `Int`` 和 `` `Not_a_number``, 而且至少包含 `` `Float`` 和 `` `Int``。
+
+### 模式匹配的一个简写
+
+```ocaml
+type color =
+  [ `Basic of basic_color * [ `Bold | `Regular ]
+  | `Gray of int
+  | `RGB  of int * int * int ]
+
+let extended_color_to_int = function
+  | `RGBA (r,g,b,a) -> 256 + a + b * 6 + g * 36 + r * 216
+  | `Grey x -> 2000 + x
+  | (`Basic _ | `RGB _ | `Gray _) as color -> color_to_int color
+
+let extended_color_to_int : extended_color -> int = function
+  | `RGBA (r,g,b,a) -> 256 + a + b * 6 + g * 36 + r * 216
+  | #color as color -> color_to_int color
+```
+
+这个例子中可以使用 `#color` 代替 ``(`Basic _ | `RGB _ | `Gray _)`` 来简写代码。
+
+## Error Handling
+
 
 
