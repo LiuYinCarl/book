@@ -1306,4 +1306,44 @@ let load filename =
 val load : string -> float list list = <fun>
 ```
 
+Ocaml 中也可以使用 `try ... with` 语法捕捉特定的异常。
+
+```ocaml
+let lookup_weight ~compute_weight alist key =
+  try
+    let data = find_exn alist key in
+    compute_weight data
+  with
+  Key_not_found _ -> 0.;;
+val lookup_weight :
+  compute_weight:('a -> float) -> (string * 'a) list -> string -> float =
+  <fun>
+```
+
+`find_exn` 假设是一个从列表中查找元素的函数，如果找不到的话则会抛出异常 `Key_not_found`。在这里例子中，如果 `try` 语句块中抛出了 `Key_not_found`，则 `with` 语句块中会进行捕捉，并返回 `0.`。
+
+如果不只是想处理特定的异常，而是处理任何异常，可以使用模式匹配来匹配异常。
+
+```ocaml
+let lookup_weight ~compute_weight alist key =
+  match find_exn alist key with
+  | exception _ -> 0.
+  | data -> compute_weight data;;
+val lookup_weight : compute_weight:('a -> float) -> (string * 'a) list -> string -> float = <fun>
+```
+
+### 调用栈
+
+OCaml 中可以使用 `Backtrace.Exn.most_recent` 来获取异常调用栈。由于 OCaml 默认关闭了调用栈，所以需要在编译代码的时候链接调试符号。但是即使链接了调试符号，也可以通过环境变量 `OCAMLRUNPARAM` 来关闭捕获调用栈。
+
+```bash
+OCAMLRUNPARAM=b=0 dune exec -- ./test.exe
+```
+
+在代码中也可以通过调用 `Backtrace.Exn.set_recording false` 函数来关闭调用栈。
+
+这一章的重点是理解 error-aware 和 Exception 的差异以及这两者的适用场景。总结来说就是，对于不可预见的错误，例如内存不足，使用 Exception，对于可以预见到并且比较平常的错误，使用 error-aware。
+
+
+
 
