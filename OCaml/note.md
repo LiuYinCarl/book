@@ -1218,5 +1218,92 @@ let extended_color_to_int : extended_color -> int = function
 
 ## Error Handling
 
+### Bind
+
+`bind` 的实现如下
+```ocaml
+let bind option ~f =
+  match option with
+  | None -> None
+  | Some x -> f x;;
+val bind : 'a option -> f:('a -> 'b option) -> 'b option = <fun>
+```
+
+`bind` 的功能就是如果 `option` 为 `None` 的话则什么都不做返回 `None`，如果为 `Some x` 的话，则返回 `f x`。
+
+`bind` 使用的常见用法如下
+
+```ocaml
+let compute_bounds ~compare list =
+  let sorted = List.sort ~compare list in
+  Option.bind (List.hd sorted) ~f:(fun first ->
+    Option.bind (List.last sorted) ~f:(fun last ->
+      Some (first,last)));;
+val compute_bounds : compare:('a -> 'a -> int) -> 'a list -> ('a * 'a) option =
+  <fun>
+```
+
+`compute_bounds` 函数用来计算一个列表的上下界。
+
+```ocaml
+compute_bounds ~compare:(fun x y -> x - y) [4;3;2;1];;
+- : (int * int) option = Base.Option.Some (1, 4)
+```
+
+`Option.Monad_infix` 模块中实现了 `bind` 中缀写法 `>>=` 用来简化代码。
+
+```ocaml
+let compute_bounds ~compare list =
+  let open Option.Monad_infix in
+  let sorted = List.sort ~compare list in
+  List.hd sorted   >>= fun first ->
+  List.last sorted >>= fun last  ->
+  Some (first,last);;
+val compute_bounds : compare:('a -> 'a -> int) -> 'a list -> ('a * 'a) option = <fun>
+```
+
+### 捕捉异常
+
+以常见的文本解析代码为例，如果需要不符合规则的文件，如果代码写的不够健壮，就容易因为文件格式不对导致代码异常退出，导致文件句柄泄露，如下所示。
+
+```ocaml
+open Stdio;;
+open Base;;
+
+let parse_line line =
+  String.split_on_chars ~on:[','] line
+  |> List.map ~f:Float.of_string;;
+val parse_line : string -> float list = <fun>
+
+let load filename =
+  let inc = In_channel.create filename in
+  let data =
+    In_channel.input_lines inc
+    |> List.map ~f:parse_line
+  in
+  In_channel.close inc;
+  data;;
+val load : string -> float list list = <fun>
+```
+
+Base 库中提供了 `Exn.protect` 函数来捕捉异常，使用它来重写 `load` 函数。
+
+```ocaml
+let load filename =
+  let inc = In_channel.create filename in
+  Exn.protect
+    ~f:(fun () -> In_channel.input_lines inc |> List.map ~f:parse_line)
+    ~finally:(fun () -> In_channel.close inc);;
+val load : string -> float list list = <fun>
+```
+
+对于遇到异常时关闭文件句柄这种情况 In_channel 模块也提供了 `with_file` 函数来处理。
+
+```ocaml
+let load filename =
+  In_channel.with_file filename ~f:(fun inc ->
+    In_channel.input_lines inc |> List.map ~f:parse_line);;
+val load : string -> float list list = <fun>
+```
 
 
