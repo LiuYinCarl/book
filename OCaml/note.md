@@ -1345,5 +1345,73 @@ OCAMLRUNPARAM=b=0 dune exec -- ./test.exe
 这一章的重点是理解 error-aware 和 Exception 的差异以及这两者的适用场景。总结来说就是，对于不可预见的错误，例如内存不足，使用 Exception，对于可以预见到并且比较平常的错误，使用 error-aware。
 
 
+## 命令式编程
 
+### ref
 
+ref 的定义如下
+
+```ocaml
+type 'a ref = { mutable contents : 'a };;
+type 'a ref = { mutable contents : 'a; }
+```
+
+标准库为 ref 定义了三个重要的操作
+
+**ref expr**
+
+构造一个包含 expr 表达式的值的 reference cell。
+
+**!refcell**
+
+返回 reference cell 的值。
+
+**refcell := expr**
+
+使用 expr 的值替换 reference cell 的值。
+
+用法如下
+```ocaml
+let x = ref 1;;
+val x : int ref = {contents = 1}
+
+!x;;
+- : int = 1
+
+x := !x + 1;;
+- : unit = ()
+
+!x;;
+- : int = 2
+```
+
+### for
+
+For 循环的结构是 `for 下限 to 上限 done` 或者 `for 上限 downto 下限 done` 并且上限和下限都包含在循环中。
+
+```ocaml
+open Stdio;;
+
+for i = 0 to 3 do printf "i = %d\n" i done;;
+i = 0
+i = 1
+i = 2
+i = 3
+- : unit = ()
+```
+
+### whiel
+
+```ocaml
+let i =ref 0;;
+val i : int ref = {Base.Ref.contents = 0}
+
+while !i < 3 do
+  printf "i = %d\n" !i;
+  i := !i + 1
+done;;
+i = 0
+i = 1
+i = 2
+- : unit = ()
+```
