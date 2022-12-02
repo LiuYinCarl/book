@@ -1400,7 +1400,7 @@ i = 3
 - : unit = ()
 ```
 
-### whiel
+### while
 
 ```ocaml
 let i =ref 0;;
@@ -1415,3 +1415,24 @@ i = 1
 i = 2
 - : unit = ()
 ```
+
+### 弱多态
+
+
+## GADTs
+
+GADT 的格式如下
+
+```ocaml
+type _ value =
+  | Int : int -> int value
+  | Bool : bool -> bool value
+
+type _ expr =
+  | Value : 'a value -> 'a expr
+  | Eq : int expr * int expr -> bool expr
+  | Plus : int expr * int expr -> int expr
+  | If : bool expr * 'a expr * 'a expr -> 'a expr
+```
+
+类型中的每个 Tag 的定义类似一个函数定义。`->` 左侧是传递给构造器的参数类型，`->` 右侧是被构造出来的Tag 的类型。
