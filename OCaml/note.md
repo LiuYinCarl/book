@@ -44,6 +44,41 @@ opam install tuareg
 opam install core
 ```
 
+## 解决模块找不到的问题
+
+在和 Linux 系统交互的时候，如果出现像下面类似的错误
+
+```
+Error: Unbound module Sys_unix
+
+Error: Unbound module Core_unix
+```
+
+那么解决办法是如果没有安装库，先安装。然后按如下方式导入
+
+```ocaml
+# #require "core_unix";;
+open Core_unix;;
+
+# #require "core_unix.sys_unic";;
+# open Sys_unix;;
+```
+
+如果觉得每次都需要 `#require` 太麻烦，可以在用户根目录(`~/`)下创建一个 `.ocamlinit` 文件，内容如下
+
+```ocaml
+#use "topfind";;
+
+#require "core";;
+#require "core_unix";;
+#require "core_unix.sys_unix";;
+```
+
+这样子之后就不用自己写 `#require` 了。
+
+
+[stackoverflow链接](https://stackoverflow.com/questions/74059218/how-to-deal-with-the-error-unbound-module-sys-unix)
+
 
 ## What's the difference between include, require and open in OCaml?
 
