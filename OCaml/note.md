@@ -1471,3 +1471,145 @@ type _ expr =
 ```
 
 类型中的每个 Tag 的定义类似一个函数定义。`->` 左侧是传递给构造器的参数类型，`->` 右侧是被构造出来的Tag 的类型。
+
+
+## Object
+
+### Subtyping
+
+```ocaml
+type shape = < area : float >;;
+type shape = < area : float >
+
+type square = < area : float; width : int>;;
+type square = < area : float; width : int >
+
+let square w = object
+  method area = Float.of_int (w * w)
+  method width = w
+end;;
+val square : int -> < area : float; width : int > = <fun>
+
+(square 10 :> shape);;
+- : shape = <obj>
+```
+
+如果一个类型 A **实现**了类型 B 定义的所有方法，那么称类型 A 为类型 B 的 width subtyping，在这里，`square` 类型就是 `shape` 类型的 width subtyping。
+
+
+## Class
+
+OCaml 中继承的写法
+
+```ocaml
+(* 定义 class stack *)
+class ['a] stack init = object
+  val mutable v : 'a list = init
+
+  method pop =
+    match v with
+    | hd :: tl ->
+      v <- tl;
+      Some hd
+    | [] -> None
+
+  method push hd =
+    v <- hd :: v
+
+  method iter f =
+    List.iter ~f v
+end;;
+
+(* 继承 class stack 的 class sstack *)
+class sstack init = object
+  inherit [string] stack init
+
+  method print =
+    List.iter ~f:Stdio.print_endline v
+end;;
+```
+
+继承的语法主要是关键字 `inherit`。
+
+子类也可以重写父类的方法, 下面的子类 `double_stack` 就重写了父类的 `push` 方法。
+```ocaml
+class double_stack init = object
+  inherit [int] stack init as super
+
+  method push hd =
+    super#push (hd * 2)
+end;;
+```
+
+其中的 `as super` 语句构造了一个被叫做 `super` 的特殊对象用来调用父类的方法，`super` 并不是一个实际存在的对象，并且只能用来调用父类的方法。
+
+### 类的私有方法
+
+类中也可以定义私有方法，只允许自身及子类调用。
+
+```ocaml
+class folder = object(self)
+  method string_id (name: string) = self#id name
+
+  method private id name = name
+end;;
+
+class folder2 = object
+  inherit folder as super
+
+  method call_id (name: string) =
+    let new_name = super#id name in
+    new_name
+end;;
+```
+
+私有方法属于 class type 的一部分，而不属于 object type 的一部分。
+
+
+### Binary Methods
+
+A binary method is a method that takes an object of self type. One common example is defining a method for equality。
+
+### Virtual Classes and Methods
+
+A virtual class is a class where some methods or fields are declared but not implemented.
+
+### 初始化
+
+如果想要在创建对象之后执行表达式，那么可以使用 initializer。
+
+```ocaml
+class growing_circle r x y = object(self)
+  inherit circle r x y
+
+  initializer
+    self#on_click (fun _x _y -> radius <- radius * 2)
+end
+```
+
+### 多继承
+
+多继承中的名称查找查找规则：
+
+和 include 类似，如果一个类继承了多个类，并且这些类中存在同名的定义，那么继承语法中出现的最后一个定义是子类查找名称定义时选择的定义。如果子类和父类中存在同名定义的话，也是如此，选择子类定义中最后出现的名称定义。
+
+下面的例子中父类 `square` 和子类 `square_outline` 中都定义了 `drew` 方法。 
+
+```ocaml
+class square_outline w x y = object
+  inherit square w x y
+  method draw = draw_rect x y width width
+end
+```
+
+按照这样子定义，因为子类中的 `drew` 方法后出现，所以名称查找时选择子类中的方法。
+
+```ocaml
+class square_outline w x y = object
+  method draw = draw_rect x y w w
+  inherit square w x y
+end
+```
+
+按照这个定义，因为继承语句后出现，所以名称查找时选择父类中定义的方法。
+
